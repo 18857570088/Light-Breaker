@@ -57,8 +57,8 @@ class LightBreakerGameView @JvmOverloads constructor(
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
 
         val snap = snapshot ?: return drawEmpty(canvas)
-        val columns = 16
-        val rows = 10
+        val columns = snap.columns
+        val rows = snap.rows
         val boardW = width - paddingLeft - paddingRight - 24f
         val boardH = height - paddingTop - paddingBottom - 24f
         val byWidth = boardW
@@ -73,6 +73,9 @@ class LightBreakerGameView @JvmOverloads constructor(
         canvas.clipRect(boardRect)
         drawMural(canvas, boardRect, mural, snap.progressPercent)
         drawTiles(canvas, snap, columns, rows)
+        if (snap.progressPercent >= 80f) {
+            drawCelebrationParticles(canvas, boardRect, snap)
+        }
         canvas.restore()
 
         strokePaint.color = Color.parseColor("#38557A")
@@ -259,6 +262,7 @@ class LightBreakerGameView @JvmOverloads constructor(
                 TileKind.Normal -> "#334155"
                 TileKind.Core -> "#4C3F5F"
                 TileKind.Bonus -> "#715A1F"
+                TileKind.Locked -> "#1F2937"
             }
         paint.color = Color.parseColor(base)
         canvas.drawRoundRect(tileRect, 7f, 7f, paint)
@@ -273,6 +277,15 @@ class LightBreakerGameView @JvmOverloads constructor(
             paint.textSize = 18f
             canvas.drawText(tile.hp.toString(), tileRect.centerX(), tileRect.centerY() + 6f, paint)
         }
+        if (tile.kind == TileKind.Bonus) {
+            paint.color = Color.argb(220, 250, 204, 21)
+            canvas.drawCircle(tileRect.centerX(), tileRect.centerY(), min(tileRect.width(), tileRect.height()) * 0.16f, paint)
+        } else if (tile.kind == TileKind.Locked) {
+            paint.color = Color.argb(180, 148, 163, 184)
+            paint.textAlign = Paint.Align.CENTER
+            paint.textSize = 16f
+            canvas.drawText("LOCK", tileRect.centerX(), tileRect.centerY() + 5f, paint)
+        }
     }
 
     private fun drawOwnerGlow(
@@ -280,11 +293,12 @@ class LightBreakerGameView @JvmOverloads constructor(
         tile: TileSnapshot,
     ) {
         val color =
-            when (tile.owner) {
-                GloveHand.Left -> Color.parseColor("#3B82F6")
-                GloveHand.Right -> Color.parseColor("#F97316")
-                else -> Color.parseColor("#22C55E")
-            }
+            tile.ownerId?.let { playerColor(it) }
+                ?: when (tile.owner) {
+                    GloveHand.Left -> Color.parseColor("#3B82F6")
+                    GloveHand.Right -> Color.parseColor("#F97316")
+                    else -> Color.parseColor("#22C55E")
+                }
         if (snapshot?.lastOpenedIndexes?.contains(tile.index) == true) {
             paint.color = Color.argb(70, Color.red(color), Color.green(color), Color.blue(color))
             canvas.drawRect(tileRect, paint)
@@ -303,5 +317,34 @@ class LightBreakerGameView @JvmOverloads constructor(
                 intArrayOf(0xFF06281F.toInt(), 0xFF14B8A6.toInt(), 0xFF2563EB.toInt(), 0xFFFDE047.toInt(), 0xFFF43F5E.toInt()),
             )
         return palettes[seed % palettes.size]
+    }
+
+    private fun drawCelebrationParticles(
+        canvas: Canvas,
+        rect: RectF,
+        snap: GameSnapshot,
+    ) {
+        val random = Random(snap.totalHits + snap.openedTiles * 13)
+        repeat(if (snap.completed) 42 else 22) {
+            val x = rect.left + random.nextFloat() * rect.width()
+            val y = rect.top + random.nextFloat() * rect.height()
+            val radius = 2f + random.nextFloat() * 5f
+            paint.color = Color.argb(95, 255, 255, 255)
+            canvas.drawCircle(x, y, radius, paint)
+        }
+        if (snap.completed) {
+            paint.color = Color.argb(70, 255, 255, 255)
+            canvas.drawRect(rect, paint)
+        }
+    }
+
+    private fun playerColor(playerId: String): Int {
+        val colors = intArrayOf(
+            Color.parseColor("#3B82F6"),
+            Color.parseColor("#F97316"),
+            Color.parseColor("#22C55E"),
+            Color.parseColor("#A855F7"),
+        )
+        return colors[(playerId.hashCode() and Int.MAX_VALUE) % colors.size]
     }
 }

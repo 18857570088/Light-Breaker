@@ -80,6 +80,7 @@ class LightBreakerRepository(
                 AchievementDefinition("hundred_hits", "百拳破壁", "单局出拳达到 100 次", snapshot.totalHits, 100),
                 AchievementDefinition("combo_master", "连击掌控者", "单局最高连击达到 x8", snapshot.maxCombo, 8),
                 AchievementDefinition("full_reveal", "完整揭晓", "完成率达到 100%", snapshot.progressPercent.roundToInt(), 100),
+                AchievementDefinition("treasure_find", "宝箱猎手", "触发一次宝箱奖励", if (snapshot.lastReward != null || snapshot.xpMultiplier > 1) 1 else 0, 1),
             )
         definitions.forEach { definition ->
             database.achievementDao().upsertAchievement(
@@ -97,7 +98,7 @@ class LightBreakerRepository(
     }
 
     private fun calculateXp(snapshot: GameSnapshot): Int =
-        20 + snapshot.openedTiles / 3 + snapshot.maxCombo * 2 + if (snapshot.completed) 50 else 0
+        (20 + snapshot.openedTiles / 3 + snapshot.maxCombo * 2 + if (snapshot.completed) 50 else 0) * snapshot.xpMultiplier
 
     private data class AchievementDefinition(
         val key: String,

@@ -120,3 +120,100 @@ CREATE TABLE IF NOT EXISTS sync_events (
     KEY idx_sync_type_created (event_type, created_at),
     CONSTRAINT fk_sync_profile FOREIGN KEY (install_id) REFERENCES app_profiles(install_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS multiplayer_rooms (
+    room_code CHAR(6) NOT NULL PRIMARY KEY,
+    status ENUM('waiting', 'running', 'finished', 'expired') NOT NULL DEFAULT 'waiting',
+    host_player_id VARCHAR(32) NOT NULL,
+    mural_id VARCHAR(96) NULL,
+    title VARCHAR(128) NOT NULL,
+    theme VARCHAR(128) NOT NULL,
+    prompt TEXT NULL,
+    image_url TEXT NULL,
+    category_id VARCHAR(32) NULL,
+    difficulty ENUM('easy', 'standard', 'challenge') NOT NULL DEFAULT 'standard',
+    seed BIGINT NULL,
+    max_players TINYINT UNSIGNED NOT NULL DEFAULT 4,
+    created_at_ms BIGINT NOT NULL,
+    started_at_ms BIGINT NULL,
+    finished_at_ms BIGINT NULL,
+    total_hits INT UNSIGNED NOT NULL DEFAULT 0,
+    opened_tiles INT UNSIGNED NOT NULL DEFAULT 0,
+    total_tiles INT UNSIGNED NOT NULL DEFAULT 0,
+    max_combo INT UNSIGNED NOT NULL DEFAULT 0,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    result_json JSON NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_multiplayer_rooms_status_created (status, created_at_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS multiplayer_players (
+    room_code CHAR(6) NOT NULL,
+    player_id VARCHAR(32) NOT NULL,
+    install_id VARCHAR(64) NOT NULL,
+    nickname VARCHAR(64) NOT NULL,
+    color VARCHAR(16) NOT NULL,
+    token VARCHAR(96) NOT NULL,
+    joined_at_ms BIGINT NOT NULL,
+    last_seen_at_ms BIGINT NOT NULL,
+    connected BOOLEAN NOT NULL DEFAULT FALSE,
+    total_hits INT UNSIGNED NOT NULL DEFAULT 0,
+    opened_tiles INT UNSIGNED NOT NULL DEFAULT 0,
+    max_combo INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (room_code, player_id),
+    KEY idx_multiplayer_players_install (install_id),
+    CONSTRAINT fk_multiplayer_players_room FOREIGN KEY (room_code) REFERENCES multiplayer_rooms(room_code) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS multiplayer_events (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    room_code CHAR(6) NOT NULL,
+    seq INT UNSIGNED NOT NULL,
+    player_id VARCHAR(32) NOT NULL,
+    hand ENUM('left', 'right', 'unknown') NOT NULL DEFAULT 'unknown',
+    timestamp_ms BIGINT NOT NULL,
+    intensity INT UNSIGNED NOT NULL DEFAULT 0,
+    source_count INT UNSIGNED NOT NULL DEFAULT 0,
+    payload_json JSON NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_multiplayer_events_seq (room_code, seq),
+    KEY idx_multiplayer_events_player (room_code, player_id),
+    CONSTRAINT fk_multiplayer_events_room FOREIGN KEY (room_code) REFERENCES multiplayer_rooms(room_code) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS multiplayer_results (
+    room_code CHAR(6) NOT NULL PRIMARY KEY,
+    total_hits INT UNSIGNED NOT NULL DEFAULT 0,
+    opened_tiles INT UNSIGNED NOT NULL DEFAULT 0,
+    total_tiles INT UNSIGNED NOT NULL DEFAULT 0,
+    duration_seconds INT UNSIGNED NOT NULL DEFAULT 0,
+    max_combo INT UNSIGNED NOT NULL DEFAULT 0,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    mvp_player_id VARCHAR(32) NULL,
+    scoreboard_json JSON NOT NULL,
+    created_at_ms BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_multiplayer_results_room FOREIGN KEY (room_code) REFERENCES multiplayer_rooms(room_code) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS team_leaderboards (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    room_code CHAR(6) NOT NULL,
+    title VARCHAR(128) NOT NULL,
+    difficulty ENUM('easy', 'standard', 'challenge') NOT NULL DEFAULT 'standard',
+    duration_seconds INT UNSIGNED NOT NULL DEFAULT 0,
+    total_hits INT UNSIGNED NOT NULL DEFAULT 0,
+    opened_tiles INT UNSIGNED NOT NULL DEFAULT 0,
+    total_tiles INT UNSIGNED NOT NULL DEFAULT 0,
+    player_count TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    mvp_nickname VARCHAR(64) NULL,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at_ms BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_team_leaderboards_rank (completed, duration_seconds, opened_tiles, created_at_ms),
+    KEY idx_team_leaderboards_room (room_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

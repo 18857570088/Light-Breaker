@@ -7,10 +7,10 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.random.Random
 
-class LightBreakerGameEngine(
-    private val columns: Int = 16,
-    private val rows: Int = 10,
-) {
+class LightBreakerGameEngine {
+    private var columns: Int = GameDifficulty.Standard.columns
+    private var rows: Int = GameDifficulty.Standard.rows
+    private var difficulty: GameDifficulty = GameDifficulty.Standard
     private val tiles = mutableListOf<TileState>()
     private var random = Random(1)
     private var totalHits = 0
@@ -21,8 +21,17 @@ class LightBreakerGameEngine(
     private var maxCombo = 0
     private var lastHitAtMs = 0L
     private var lastOpened = emptySet<Int>()
+    private var lastReward: TreasureReward? = null
+    private var xpMultiplier = 1
+    private val playerHits = mutableMapOf<String, Int>()
 
-    fun start(mural: GeneratedMural): GameSnapshot {
+    fun start(
+        mural: GeneratedMural,
+        difficulty: GameDifficulty = GameDifficulty.Standard,
+    ): GameSnapshot {
+        this.difficulty = difficulty
+        columns = difficulty.columns
+        rows = difficulty.rows
         random = Random(mural.seed)
         totalHits = 0
         leftHits = 0
@@ -32,6 +41,9 @@ class LightBreakerGameEngine(
         maxCombo = 0
         lastHitAtMs = 0L
         lastOpened = emptySet()
+        lastReward = null
+        xpMultiplier = 1
+        playerHits.clear()
         tiles.clear()
         repeat(rows) { row ->
             repeat(columns) { col ->
@@ -43,6 +55,7 @@ class LightBreakerGameEngine(
                         TileKind.Normal -> if (random.nextFloat() < 0.18f) 2 else 1
                         TileKind.Core -> 3
                         TileKind.Bonus -> 2
+                        TileKind.Locked -> 3
                     }
                 tiles += TileState(index, row, col, hp, hp, kind)
             }
@@ -50,11 +63,15 @@ class LightBreakerGameEngine(
         return snapshot()
     }
 
-    fun registerHit(hit: HitEvent): GameSnapshot {
+    fun registerHit(
+        hit: HitEvent,
+        playerId: String? = null,
+    ): GameSnapshot {
         if (tiles.isEmpty() || openedTiles >= tiles.size) {
             return snapshot()
         }
         totalHits += 1
+        playerId?.let { playerHits[it] = (playerHits[it] ?: 0) + 1 }
         when (hit.hand) {
             GloveHand.Left -> leftHits += 1
             GloveHand.Right -> rightHits += 1
@@ -64,12 +81,13 @@ class LightBreakerGameEngine(
         maxCombo = maxOf(maxCombo, combo)
         lastHitAtMs = hit.timestampMs
 
+        lastReward = null
         val openedNow = linkedSetOf<Int>()
-        hitTile(selectTarget(hit), hit.hand, openedNow)
+        hitTile(selectTarget(hit), hit.hand, playerId, openedNow, hit)
         if (hit.intensity >= STRONG_HIT_POWER || combo >= 8) {
-            openSplashAround(openedNow.lastOrNull(), hit.hand, openedNow, radius = if (combo >= 10) 2 else 1)
+            openSplashAround(openedNow.lastOrNull(), hit.hand, playerId, openedNow, radius = if (combo >= 10) 2 else 1)
         } else if (combo == 5 || combo == 6) {
-            openRandomLightTile(hit.hand, openedNow)
+            openRandomLightTile(hit.hand, playerId, openedNow)
         }
         lastOpened = openedNow
         return snapshot()
@@ -89,6 +107,12 @@ class LightBreakerGameEngine(
             progressPercent = if (tiles.isEmpty()) 0f else openedTiles * 100f / tiles.size,
             tiles = tiles.map { it.toSnapshot() },
             lastOpenedIndexes = lastOpened,
+            columns = columns,
+            rows = rows,
+            difficulty = difficulty,
+            lastReward = lastReward,
+            xpMultiplier = xpMultiplier,
+            playerHits = playerHits.toMap(),
         )
 
     private fun selectTarget(hit: HitEvent): TileState {
@@ -105,43 +129,72 @@ class LightBreakerGameEngine(
     private fun hitTile(
         tile: TileState,
         hand: GloveHand,
+        playerId: String?,
         openedNow: MutableSet<Int>,
+        hit: HitEvent,
     ) {
         if (tile.opened) return
-        val damage = if (tile.kind == TileKind.Bonus) 2 else 1
+        if (tile.kind == TileKind.Locked && hit.intensity < STRONG_HIT_POWER && combo < 3) return
+        val damage =
+            when (tile.kind) {
+                TileKind.Bonus -> 2
+                TileKind.Locked -> if (hit.intensity >= STRONG_HIT_POWER) 2 else 1
+                else -> 1
+            }
         tile.hp = (tile.hp - damage).coerceAtLeast(0)
         if (tile.hp == 0) {
-            openTile(tile, hand, openedNow)
+            openTile(tile, hand, playerId, openedNow)
             if (tile.kind == TileKind.Bonus) {
-                openRandomLightTile(hand, openedNow)
-                openRandomLightTile(hand, openedNow)
+                triggerTreasure(hand, playerId, openedNow)
             }
+        }
+    }
+
+    private fun triggerTreasure(
+        hand: GloveHand,
+        playerId: String?,
+        openedNow: MutableSet<Int>,
+    ) {
+        lastReward = TreasureReward.entries[random.nextInt(TreasureReward.entries.size)]
+        when (lastReward) {
+            TreasureReward.Splash -> openSplashAround(openedNow.lastOrNull(), hand, playerId, openedNow, radius = 2)
+            TreasureReward.DoubleXp -> xpMultiplier = 2
+            TreasureReward.FastBreak -> repeat(4) { openRandomLightTile(hand, playerId, openedNow) }
+            null -> Unit
+        }
+        if (lastReward != TreasureReward.FastBreak) {
+            openRandomLightTile(hand, playerId, openedNow)
+            openRandomLightTile(hand, playerId, openedNow)
         }
     }
 
     private fun openTile(
         tile: TileState,
         hand: GloveHand,
+        playerId: String?,
         openedNow: MutableSet<Int>,
     ) {
         if (tile.opened) return
         tile.opened = true
         tile.owner = hand
+        tile.ownerId = playerId
         openedTiles += 1
         openedNow += tile.index
     }
 
     private fun openRandomLightTile(
         hand: GloveHand,
+        playerId: String?,
         openedNow: MutableSet<Int>,
     ) {
         val target = tiles.filter { !it.opened && it.hp <= 1 }.randomOrNull(random) ?: return
-        openTile(target, hand, openedNow)
+        openTile(target, hand, playerId, openedNow)
     }
 
     private fun openSplashAround(
         sourceIndex: Int?,
         hand: GloveHand,
+        playerId: String?,
         openedNow: MutableSet<Int>,
         radius: Int,
     ) {
@@ -150,7 +203,7 @@ class LightBreakerGameEngine(
             .filter { !it.opened && abs(it.row - source.row) <= radius && abs(it.col - source.col) <= radius }
             .shuffled(random)
             .take(if (radius >= 2) 3 else 1)
-            .forEach { openTile(it, hand, openedNow) }
+            .forEach { openTile(it, hand, playerId, openedNow) }
     }
 
     private fun kindFor(
@@ -160,8 +213,11 @@ class LightBreakerGameEngine(
         val edge = row == 0 || col == 0 || row == rows - 1 || col == columns - 1
         if (edge) return TileKind.Edge
         val centerDistance = centerScore(row, col)
+        if (difficulty == GameDifficulty.Challenge && (centerDistance < 1.5f || centerDistance < 2.7f && random.nextFloat() < difficulty.lockedChance)) {
+            return TileKind.Locked
+        }
         if (centerDistance < 2.7f) return TileKind.Core
-        if (random.nextFloat() < 0.04f) return TileKind.Bonus
+        if (random.nextFloat() < difficulty.bonusChance) return TileKind.Bonus
         return TileKind.Normal
     }
 
@@ -179,6 +235,7 @@ class LightBreakerGameEngine(
         val kind: TileKind,
         var opened: Boolean = false,
         var owner: GloveHand? = null,
+        var ownerId: String? = null,
     ) {
         fun toSnapshot(): TileSnapshot =
             TileSnapshot(
@@ -190,6 +247,7 @@ class LightBreakerGameEngine(
                 kind = kind,
                 opened = opened,
                 owner = owner,
+                ownerId = ownerId,
             )
     }
 

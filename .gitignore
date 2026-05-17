@@ -22,3 +22,8 @@ local.properties
 
 # Downloaded image staging cache
 .image_staging/
+
+# Python backend local runtime
+backend/.venv/
+__pycache__/
+*.pyc

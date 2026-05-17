@@ -1,13 +1,14 @@
 package com.zclei.lightbreaker
 
 import android.Manifest
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
-import android.view.Gravity
+import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -28,12 +29,21 @@ import com.zclei.lightbreaker.ble.GloveHand
 import com.zclei.lightbreaker.data.GalleryItemEntity
 import com.zclei.lightbreaker.data.LightBreakerRepository
 import com.zclei.lightbreaker.data.ProgressStats
+import com.zclei.lightbreaker.game.GameDifficulty
 import com.zclei.lightbreaker.game.GameSnapshot
+import com.zclei.lightbreaker.game.GameSoundPlayer
 import com.zclei.lightbreaker.game.LightBreakerGameEngine
 import com.zclei.lightbreaker.game.LightBreakerGameView
 import com.zclei.lightbreaker.hit.HitEvent
 import com.zclei.lightbreaker.mural.CloudMuralGenerationApi
 import com.zclei.lightbreaker.mural.GeneratedMural
+import com.zclei.lightbreaker.multiplayer.MultiplayerApi
+import com.zclei.lightbreaker.multiplayer.MultiplayerPlayer
+import com.zclei.lightbreaker.multiplayer.MultiplayerRoomSession
+import com.zclei.lightbreaker.multiplayer.MultiplayerRoomState
+import com.zclei.lightbreaker.multiplayer.RemoteHitEvent
+import com.zclei.lightbreaker.multiplayer.RoomSocketClient
+import com.zclei.lightbreaker.multiplayer.RoomSocketEvent
 import com.zclei.lightbreaker.network.ServerConfig
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -44,18 +54,29 @@ import kotlin.math.roundToInt
 class MainActivity : ComponentActivity() {
     private lateinit var repository: LightBreakerRepository
     private lateinit var bleManager: BleGloveManager
+
     private val muralApi = CloudMuralGenerationApi()
+    private val multiplayerApi = MultiplayerApi()
+    private val roomSocket = RoomSocketClient()
     private val engine = LightBreakerGameEngine()
+    private val soundPlayer = GameSoundPlayer()
 
     private lateinit var root: LinearLayout
     private lateinit var content: FrameLayout
-    private var currentPage = Page.Home
 
     private var currentMural: GeneratedMural? = null
     private var currentSnapshot: GameSnapshot? = null
+    private var currentDifficulty = GameDifficulty.Standard
+    private var playMode = PlayMode.Single
     private var trainingActive = false
     private var trainingStartedAtMs = 0L
     private var simulationCount = 0
+
+    private var multiplayerSession: MultiplayerRoomSession? = null
+    private var multiplayerState: MultiplayerRoomState? = null
+    private var multiplayerStatusText: TextView? = null
+    private var multiplayerLogText: TextView? = null
+    private val multiplayerLines = ArrayDeque<String>()
 
     private var progressStats: ProgressStats = ProgressStats(0, 1, null, null)
     private var latestStates: Map<GloveHand, GloveConnectionState> = emptyMap()
@@ -70,7 +91,6 @@ class MainActivity : ComponentActivity() {
     private var debugDeviceList: LinearLayout? = null
     private var debugLogText: TextView? = null
     private var galleryList: LinearLayout? = null
-
     private var gameView: LightBreakerGameView? = null
     private var gameStatsText: TextView? = null
 
@@ -82,11 +102,13 @@ class MainActivity : ComponentActivity() {
         buildShell()
         bindFlows()
         showHome()
-        lifecycleScope.launch { generateMural(prompt = "击碎压力，露出治愈光影", theme = "自然风光", silent = true) }
+        lifecycleScope.launch { generateMural("击碎压力，露出治愈光影", "自然风光", silent = true) }
     }
 
     override fun onDestroy() {
+        roomSocket.close()
         bleManager.disconnectAll()
+        soundPlayer.release()
         super.onDestroy()
     }
 
@@ -121,8 +143,9 @@ class MainActivity : ComponentActivity() {
                     orientation = LinearLayout.HORIZONTAL
                     setPadding(0, dp(10), 0, 0)
                     addView(tabButton("首页") { showHome() })
-                    addView(tabButton("蓝牙调试") { showDebug() })
-                    addView(tabButton("我的画廊") { showGallery() })
+                    addView(tabButton("多人") { showMultiplayer() })
+                    addView(tabButton("蓝牙") { showDebug() })
+                    addView(tabButton("画廊") { showGallery() })
                 },
             )
         }
@@ -133,65 +156,35 @@ class MainActivity : ComponentActivity() {
     ): Button =
         Button(this).apply {
             this.text = text
-            textSize = 13f
+            textSize = 12f
             setTextColor(Color.WHITE)
-            background = rounded("#17233A", "#2C3E60", 16)
+            background = rounded("#17233A", "#2C3E60", 14)
             setOnClickListener { action() }
-            layoutParams = LinearLayout.LayoutParams(0, dp(42), 1f).apply { marginEnd = dp(8) }
+            layoutParams = LinearLayout.LayoutParams(0, dp(42), 1f).apply { marginEnd = dp(6) }
         }
 
     private fun showHome() {
-        currentPage = Page.Home
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        playMode = PlayMode.Single
         content.removeAllViews()
-        val promptInput =
-            EditText(this).apply {
-                hint = "输入想击碎的压力或画作关键词"
-                setHintTextColor(Color.parseColor("#687899"))
-                setTextColor(Color.WHITE)
-                setSingleLine(false)
-                minLines = 2
-                background = rounded("#101A2E", "#263B5F", 14)
-                setPadding(dp(12), dp(10), dp(12), dp(10))
-            }
-        val themeInput =
-            EditText(this).apply {
-                hint = "图片类型：自然风光、名画再现、城市建筑、抽象艺术"
-                setHintTextColor(Color.parseColor("#687899"))
-                setTextColor(Color.WHITE)
-                setSingleLine(true)
-                background = rounded("#101A2E", "#263B5F", 14)
-                setPadding(dp(12), 0, dp(12), 0)
-            }
+        val promptInput = input("输入想击碎的压力或画作关键词", minLines = 2)
+        val themeInput = input("图片类型：自然风光、名画再现、城市建筑、抽象艺术")
         content.addView(
             scroll {
                 addView(sectionTitle("训练入口"))
-                val progressCard = infoCard("")
-                homeProgressText = progressCard
-                addView(progressCard)
-                val deviceCard = infoCard("")
-                homeDeviceText = deviceCard
-                addView(deviceCard)
-                val muralCard = infoCard("")
-                homeMuralText = muralCard
-                addView(muralCard)
+                homeProgressText = infoCard("").also { addView(it) }
+                homeDeviceText = infoCard("").also { addView(it) }
+                homeMuralText = infoCard("").also { addView(it) }
                 addView(label("云端图片类型"))
                 addView(promptInput, LinearLayout.LayoutParams(match, wrap).withBottom(dp(8)))
                 addView(themeInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(10)))
-                addView(row(
-                    actionButton("自然风光", "#2563EB") { themeInput.setText("自然风光") },
-                    actionButton("名画再现", "#7C3AED") { themeInput.setText("名画再现") },
-                ))
-                addView(row(
-                    actionButton("城市建筑", "#0F766E") { themeInput.setText("城市建筑") },
-                    actionButton("抽象艺术", "#EA580C") { themeInput.setText("抽象艺术") },
-                ))
+                addCategoryButtons(themeInput)
+                addDifficultyButtons()
                 addView(row(
                     actionButton("生成画作", "#2563EB") {
-                        lifecycleScope.launch {
-                            generateMural(promptInput.text.toString(), themeInput.text.toString())
-                        }
+                        lifecycleScope.launch { generateMural(promptInput.text.toString(), themeInput.text.toString()) }
                     },
-                    actionButton("开始训练", "#16A34A") { startTraining() },
+                    actionButton("开始训练", "#16A34A") { startSingleTraining() },
                 ))
                 addView(row(
                     actionButton("扫描手套", "#0F766E") { bleManager.startScan() },
@@ -206,16 +199,50 @@ class MainActivity : ComponentActivity() {
         renderDeviceList(homeDeviceList)
     }
 
+    private fun showMultiplayer() {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        playMode = PlayMode.Multiplayer
+        content.removeAllViews()
+        val nicknameInput = input("昵称").apply { setText("玩家") }
+        val roomCodeInput = input("输入 6 位房间码")
+        val categoryInput = input("图片类型").apply { setText("自然风光") }
+        content.addView(
+            scroll {
+                addView(sectionTitle("多人房间"))
+                multiplayerStatusText = infoCard("").also { addView(it) }
+                addView(label("昵称"))
+                addView(nicknameInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(8)))
+                addView(label("房间码"))
+                addView(roomCodeInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(8)))
+                addView(label("图片类型与难度"))
+                addCategoryButtons(categoryInput)
+                addDifficultyButtons()
+                addView(row(
+                    actionButton("创建房间", "#2563EB") {
+                        lifecycleScope.launch { createMultiplayerRoom(nicknameInput.text.toString(), categoryInput.text.toString()) }
+                    },
+                    actionButton("加入房间", "#0F766E") {
+                        lifecycleScope.launch { joinMultiplayerRoom(roomCodeInput.text.toString(), nicknameInput.text.toString()) }
+                    },
+                ))
+                addView(row(
+                    actionButton("开始协作", "#16A34A") { lifecycleScope.launch { startMultiplayerRoom() } },
+                    actionButton("离开房间", "#475569") { leaveMultiplayerRoom() },
+                ))
+                multiplayerLogText = infoCard("").also { addView(it) }
+            },
+        )
+        refreshMultiplayer()
+    }
+
     private fun showDebug() {
-        currentPage = Page.Debug
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         content.removeAllViews()
         content.addView(
             scroll {
                 addView(sectionTitle("蓝牙调试"))
-                addView(infoCard("服务器 ${ServerConfig.API_BASE_URL}\n数据库 ${ServerConfig.DATABASE_NAME}"))
-                val statusCard = infoCard("")
-                debugStatusText = statusCard
-                addView(statusCard)
+                addView(infoCard("服务器 ${ServerConfig.MULTIPLAYER_API_BASE_URL}\n数据库 ${ServerConfig.DATABASE_NAME}"))
+                debugStatusText = infoCard("").also { addView(it) }
                 addView(row(
                     actionButton("扫描", "#2563EB") { bleManager.startScan() },
                     actionButton("断开全部", "#B45309") { bleManager.disconnectAll() },
@@ -224,9 +251,7 @@ class MainActivity : ComponentActivity() {
                 debugDeviceList = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
                 addView(debugDeviceList)
                 addView(sectionTitle("原始通知日志"))
-                val logCard = infoCard("")
-                debugLogText = logCard
-                addView(logCard)
+                debugLogText = infoCard("").also { addView(it) }
             },
         )
         refreshDebug()
@@ -234,7 +259,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showGallery() {
-        currentPage = Page.Gallery
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         content.removeAllViews()
         content.addView(
             scroll {
@@ -246,54 +271,143 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch { renderGallery(repository.gallery()) }
     }
 
-    private fun startTraining() {
-        val mural = currentMural
-        if (mural == null) {
-            toast("请先生成一幅画作")
+    private suspend fun createMultiplayerRoom(
+        nickname: String,
+        category: String,
+    ) {
+        toast("正在创建多人房间")
+        val mural = muralApi.generate("多人协作拆盲盒", category.ifBlank { "自然风光" })
+        val session = multiplayerApi.createRoom(installId(), nickname.ifBlank { "玩家" }, mural, currentDifficulty)
+        multiplayerSession = session
+        multiplayerState = session.state
+        currentMural = session.state.mural
+        currentDifficulty = session.state.difficulty
+        roomSocket.connect(session)
+        addMultiplayerLine("房间 ${session.state.roomCode} 已创建，等待成员加入")
+        refreshMultiplayer()
+    }
+
+    private suspend fun joinMultiplayerRoom(
+        roomCode: String,
+        nickname: String,
+    ) {
+        if (roomCode.isBlank()) {
+            toast("请输入房间码")
             return
         }
+        val session = multiplayerApi.joinRoom(roomCode, installId(), nickname.ifBlank { "玩家" })
+        multiplayerSession = session
+        multiplayerState = session.state
+        currentMural = session.state.mural
+        currentDifficulty = session.state.difficulty
+        roomSocket.connect(session)
+        addMultiplayerLine("已加入房间 ${session.state.roomCode}")
+        refreshMultiplayer()
+    }
+
+    private suspend fun startMultiplayerRoom() {
+        val session = multiplayerSession ?: return toast("请先创建或加入房间")
+        if (!session.isHost) return toast("只有房主可以开始")
+        val started = multiplayerApi.startRoom(session)
+        multiplayerSession = started
+        multiplayerState = started.state
+        startMultiplayerTraining(started.state)
+    }
+
+    private fun leaveMultiplayerRoom() {
+        roomSocket.close()
+        multiplayerSession = null
+        multiplayerState = null
+        trainingActive = false
+        addMultiplayerLine("已离开多人房间")
+        refreshMultiplayer()
+    }
+
+    private fun startSingleTraining() {
+        val mural = currentMural ?: return toast("请先生成一幅画作")
+        playMode = PlayMode.Single
+        startTrainingScreen(mural, currentDifficulty, title = "单人训练")
+    }
+
+    private fun startMultiplayerTraining(state: MultiplayerRoomState) {
+        playMode = PlayMode.Multiplayer
+        currentMural = state.mural
+        currentDifficulty = state.difficulty
+        startTrainingScreen(state.mural, state.difficulty, title = "多人房间 ${state.roomCode}")
+    }
+
+    private fun startTrainingScreen(
+        mural: GeneratedMural,
+        difficulty: GameDifficulty,
+        title: String,
+    ) {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         trainingActive = true
         trainingStartedAtMs = System.currentTimeMillis()
         simulationCount = 0
-        currentSnapshot = engine.start(mural)
-
+        currentSnapshot = engine.start(mural, difficulty)
         content.removeAllViews()
         val screen =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(dp(12), dp(10), dp(12), dp(12))
+                setPadding(dp(12), dp(8), dp(12), dp(10))
                 setBackgroundColor(Color.parseColor("#070A18"))
             }
-        gameStatsText = infoCard("")
+        gameStatsText = infoCard(title)
         screen.addView(gameStatsText)
-        gameView = LightBreakerGameView(this).apply {
-            setPadding(0, dp(8), 0, dp(8))
-            setGameState(mural, currentSnapshot)
-        }
+        gameView =
+            LightBreakerGameView(this).apply {
+                setPadding(0, dp(6), 0, dp(6))
+                setGameState(mural, currentSnapshot)
+            }
         screen.addView(gameView, LinearLayout.LayoutParams(match, 0, 1f))
         screen.addView(row(
             actionButton("模拟左拳", "#2563EB") { simulateHit(GloveHand.Left) },
             actionButton("模拟右拳", "#EA580C") { simulateHit(GloveHand.Right) },
-        ))
-        screen.addView(row(
-            actionButton("完成/结算", "#16A34A") { finishTraining(manual = true) },
-            actionButton("返回首页", "#475569") {
-                trainingActive = false
-                showHome()
-            },
+            actionButton("结算", "#16A34A") { finishTraining(manual = true) },
         ))
         content.addView(screen)
         refreshGameStats()
     }
 
-    private fun applyHit(hit: HitEvent) {
+    private fun applyHit(
+        hit: HitEvent,
+        playerId: String? = null,
+        acceptedRemote: Boolean = false,
+    ) {
         if (!trainingActive) return
-        currentSnapshot = engine.registerHit(hit)
-        gameView?.setGameState(currentMural, currentSnapshot)
+        if (playMode == PlayMode.Multiplayer && !acceptedRemote) {
+            roomSocket.sendHit(hit, currentSnapshot?.combo ?: 0)
+            return
+        }
+        currentSnapshot = engine.registerHit(hit, playerId)
+        val snapshot = currentSnapshot ?: return
+        gameView?.setGameState(currentMural, snapshot)
         refreshGameStats()
-        if (currentSnapshot?.completed == true) {
+        if (snapshot.lastReward != null) soundPlayer.treasure() else soundPlayer.hit(hit.intensity)
+        if (playMode == PlayMode.Multiplayer) {
+            roomSocket.sendSnapshot(snapshot.totalHits, snapshot.openedTiles, snapshot.totalTiles, snapshot.maxCombo, snapshot.completed)
+        }
+        if (snapshot.completed) {
+            soundPlayer.complete()
             finishTraining(manual = false)
         }
+    }
+
+    private fun applyRemoteHit(remote: RemoteHitEvent) {
+        if (playMode != PlayMode.Multiplayer && multiplayerState?.status == "running") {
+            multiplayerState?.let { startMultiplayerTraining(it) }
+        }
+        applyHit(
+            HitEvent(
+                hand = remote.hand.toGloveHand(),
+                timestampMs = remote.timestampMs,
+                intensity = remote.intensity,
+                sourceCount = remote.sourceCount,
+            ),
+            playerId = remote.playerId,
+            acceptedRemote = true,
+        )
     }
 
     private fun simulateHit(hand: GloveHand) {
@@ -313,9 +427,38 @@ class MainActivity : ComponentActivity() {
         val snapshot = currentSnapshot ?: return
         trainingActive = false
         val endedAt = System.currentTimeMillis()
+        if (playMode == PlayMode.Multiplayer) {
+            finishMultiplayer(snapshot, manual, endedAt)
+        } else {
+            lifecycleScope.launch {
+                val result = repository.saveSession(mural, snapshot, trainingStartedAtMs, endedAt)
+                showResult(snapshot, result.xpGain, result.gallerySaved, manual, "单人训练")
+            }
+        }
+    }
+
+    private fun finishMultiplayer(
+        snapshot: GameSnapshot,
+        manual: Boolean,
+        endedAt: Long,
+    ) {
+        val session = multiplayerSession
+        val mural = currentMural ?: return
+        val durationSeconds = ((endedAt - trainingStartedAtMs) / 1000L).coerceAtLeast(1L).toInt()
         lifecycleScope.launch {
-            val result = repository.saveSession(mural, snapshot, trainingStartedAtMs, endedAt)
-            showResult(snapshot, result.xpGain, saved = result.gallerySaved, manual = manual)
+            if (session != null) {
+                runCatching {
+                    multiplayerApi.finishRoom(session, snapshot, durationSeconds, multiplayerState?.players.orEmpty())
+                }.onFailure { addMultiplayerLine("多人结算上传失败：${it.message}") }
+            }
+            val result =
+                repository.saveSession(
+                    mural.copy(title = "多人 ${mural.title}", prompt = "${mural.prompt} 房间 ${session?.state?.roomCode ?: "--"}"),
+                    snapshot,
+                    trainingStartedAtMs,
+                    endedAt,
+                )
+            showResult(snapshot, result.xpGain, result.gallerySaved, manual, "多人协作 ${session?.state?.roomCode ?: ""}")
         }
     }
 
@@ -324,26 +467,31 @@ class MainActivity : ComponentActivity() {
         xpGain: Int,
         saved: Boolean,
         manual: Boolean,
+        title: String,
     ) {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         content.removeAllViews()
         content.addView(
             scroll {
-                addView(sectionTitle(if (snapshot.completed) "画作完整揭开" else "本轮训练结算"))
+                addView(sectionTitle(if (snapshot.completed) "作品完整揭开" else "本轮训练结算"))
                 addView(
                     infoCard(
                         buildString {
+                            appendLine(title)
                             appendLine(currentMural?.title.orEmpty())
-                            appendLine("进度 ${snapshot.progressPercent.roundToInt()}% · ${snapshot.openedTiles}/${snapshot.totalTiles} 块")
+                            appendLine("难度 ${snapshot.difficulty.title} · 进度 ${snapshot.progressPercent.roundToInt()}% · ${snapshot.openedTiles}/${snapshot.totalTiles} 块")
                             appendLine("总出拳 ${snapshot.totalHits} · 左手 ${snapshot.leftHits} · 右手 ${snapshot.rightHits}")
-                            appendLine("最高连击 x${snapshot.maxCombo} · ${"%.1f".format(snapshot.calories)} kcal")
-                            append(if (saved) "已进入我的画廊 · XP +$xpGain" else "训练记录已保存 · 未完成作品不进入画廊 · XP +$xpGain")
+                            appendLine("最高连击 x${snapshot.maxCombo} · ${"%.1f".format(snapshot.calories)} kcal · XP +$xpGain")
+                            snapshot.lastReward?.let { appendLine("宝箱奖励：${it.label}") }
+                            if (playMode == PlayMode.Multiplayer) appendLine(multiplayerScoreText(snapshot))
+                            append(if (saved) "已进入我的画廊" else "训练记录已保存，未完成作品不进入画廊")
                             if (manual) append(" · 手动结算")
                         },
                     ),
                 )
                 addView(row(
                     actionButton("再来一幅", "#2563EB") {
-                        lifecycleScope.launch { generateMural("新的破壁挑战", "治愈光影") }
+                        lifecycleScope.launch { generateMural("新的破壁挑战", "自然风光") }
                         showHome()
                     },
                     actionButton("查看画廊", "#16A34A") { showGallery() },
@@ -385,9 +533,7 @@ class MainActivity : ComponentActivity() {
                 refreshDebug()
                 val left = it[GloveHand.Left]?.deviceName
                 val right = it[GloveHand.Right]?.deviceName
-                if (left != null || right != null) {
-                    repository.rememberDevice(left, right)
-                }
+                if (left != null || right != null) repository.rememberDevice(left, right)
             }
         }
         lifecycleScope.launch {
@@ -398,8 +544,32 @@ class MainActivity : ComponentActivity() {
             }
         }
         lifecycleScope.launch {
-            bleManager.hits.collect { hit ->
-                applyHit(hit)
+            bleManager.hits.collect { applyHit(it) }
+        }
+        lifecycleScope.launch {
+            roomSocket.events.collect { event ->
+                when (event) {
+                    is RoomSocketEvent.Snapshot -> {
+                        multiplayerState = event.state
+                        currentMural = event.state.mural
+                        currentDifficulty = event.state.difficulty
+                        addMultiplayerLine("房间状态：${event.state.status} · 成员 ${event.state.players.size}")
+                        if (event.state.status == "running" && (!trainingActive || playMode != PlayMode.Multiplayer)) {
+                            startMultiplayerTraining(event.state)
+                        }
+                        refreshMultiplayer()
+                    }
+                    is RoomSocketEvent.HitAccepted -> applyRemoteHit(event.hit)
+                    is RoomSocketEvent.SessionFinished -> {
+                        event.state?.let { multiplayerState = it }
+                        addMultiplayerLine("多人房间已结算")
+                        refreshMultiplayer()
+                    }
+                    is RoomSocketEvent.Notice -> {
+                        addMultiplayerLine(event.message)
+                        refreshMultiplayer()
+                    }
+                }
             }
         }
     }
@@ -409,9 +579,25 @@ class MainActivity : ComponentActivity() {
         homeDeviceText?.text = buildDeviceStatusText()
         homeMuralText?.text =
             currentMural?.let {
-                "当前画作：${it.title}\n类型：${it.theme} · ${it.categoryId}\n图片：${it.imageUrl ?: "程序绘制底图"}\n提示词：${it.prompt}"
+                "当前画作：${it.title}\n类型：${it.theme} · ${it.categoryId}\n难度：${currentDifficulty.title} · ${currentDifficulty.columns * currentDifficulty.rows} 块\n图片：${it.imageUrl ?: "程序绘制底图"}\n提示词：${it.prompt}"
+            } ?: "当前画作：尚未生成"
+    }
+
+    private fun refreshMultiplayer() {
+        val session = multiplayerSession
+        val state = multiplayerState
+        multiplayerStatusText?.text =
+            if (session == null || state == null) {
+                "未加入房间。\n选择图片类型和难度后创建房间，或输入房间码加入。"
+            } else {
+                buildString {
+                    appendLine("房间 ${state.roomCode} · ${state.status} · ${state.difficulty.title}")
+                    appendLine("身份：${if (session.isHost) "房主" else "成员"} · 成员 ${state.players.size}/4")
+                    appendLine("画作：${state.mural.title}")
+                    append(state.players.joinToString("\n") { "${it.nickname} · 出拳 ${it.totalHits} · ${if (it.connected) "在线" else "离线"}" })
+                }
             }
-                ?: "当前画作：尚未生成"
+        multiplayerLogText?.text = multiplayerLines.joinToString("\n").ifBlank { "暂无多人事件。" }
     }
 
     private fun refreshDebug() {
@@ -422,9 +608,22 @@ class MainActivity : ComponentActivity() {
     private fun refreshGameStats() {
         val snap = currentSnapshot ?: return
         gameStatsText?.text =
-            "进度 ${snap.progressPercent.roundToInt()}% · ${snap.openedTiles}/${snap.totalTiles} 块\n" +
-                "总出拳 ${snap.totalHits} · 左 ${snap.leftHits} · 右 ${snap.rightHits} · 连击 x${snap.combo} · 最高 x${snap.maxCombo}\n" +
-                "热量 ${"%.1f".format(snap.calories)} kcal"
+            buildString {
+                appendLine("${if (playMode == PlayMode.Multiplayer) "多人协作" else "单人训练"} · ${snap.difficulty.title} · ${snap.columns}x${snap.rows}")
+                appendLine("进度 ${snap.progressPercent.roundToInt()}% · ${snap.openedTiles}/${snap.totalTiles} 块")
+                appendLine("总出拳 ${snap.totalHits} · 左 ${snap.leftHits} · 右 ${snap.rightHits} · 连击 x${snap.combo} · 最高 x${snap.maxCombo}")
+                append("热量 ${"%.1f".format(snap.calories)} kcal")
+                snap.lastReward?.let { append(" · 宝箱 ${it.label}") }
+                if (playMode == PlayMode.Multiplayer) append("\n${multiplayerScoreText(snap)}")
+            }
+    }
+
+    private fun multiplayerScoreText(snapshot: GameSnapshot): String {
+        val players = multiplayerState?.players.orEmpty()
+        if (players.isEmpty()) return "团队贡献：暂无"
+        return players.joinToString(" · ", prefix = "团队贡献：") {
+            "${it.nickname} ${snapshot.playerHits[it.playerId] ?: it.totalHits}"
+        }
     }
 
     private fun buildDeviceStatusText(): String {
@@ -472,6 +671,48 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun LinearLayout.addCategoryButtons(input: EditText) {
+        addView(row(
+            actionButton("自然风光", "#2563EB") { input.setText("自然风光") },
+            actionButton("名画再现", "#7C3AED") { input.setText("名画再现") },
+        ))
+        addView(row(
+            actionButton("城市建筑", "#0F766E") { input.setText("城市建筑") },
+            actionButton("抽象艺术", "#EA580C") { input.setText("抽象艺术") },
+        ))
+    }
+
+    private fun LinearLayout.addDifficultyButtons() {
+        addView(row(
+            actionButton("简单 150", "#0F766E") {
+                currentDifficulty = GameDifficulty.Easy
+                refreshHome()
+            },
+            actionButton("标准 300", "#2563EB") {
+                currentDifficulty = GameDifficulty.Standard
+                refreshHome()
+            },
+            actionButton("挑战 500", "#B45309") {
+                currentDifficulty = GameDifficulty.Challenge
+                refreshHome()
+            },
+        ))
+    }
+
+    private fun input(
+        hintText: String,
+        minLines: Int = 1,
+    ): EditText =
+        EditText(this).apply {
+            hint = hintText
+            setHintTextColor(Color.parseColor("#687899"))
+            setTextColor(Color.WHITE)
+            setSingleLine(minLines == 1)
+            this.minLines = minLines
+            background = rounded("#101A2E", "#263B5F", 14)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }
+
     private fun requestRuntimePermissions() {
         val permissions =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -480,9 +721,7 @@ class MainActivity : ComponentActivity() {
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         val missing = permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
-        if (missing.isNotEmpty()) {
-            requestPermissions(missing.toTypedArray(), REQUEST_PERMISSIONS)
-        }
+        if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), REQUEST_PERMISSIONS)
     }
 
     private fun scroll(build: LinearLayout.() -> Unit): ScrollView =
@@ -533,7 +772,7 @@ class MainActivity : ComponentActivity() {
     ): Button =
         Button(this).apply {
             this.text = text
-            textSize = 14f
+            textSize = 13f
             setTextColor(Color.WHITE)
             setAllCaps(false)
             background = rounded(color, lighten(color), 14)
@@ -587,6 +826,21 @@ class MainActivity : ComponentActivity() {
             ConnectionPhase.Error -> "异常"
         }
 
+    private fun String.toGloveHand(): GloveHand =
+        when (lowercase(Locale.US)) {
+            "left" -> GloveHand.Left
+            "right" -> GloveHand.Right
+            else -> GloveHand.Unknown
+        }
+
+    private fun addMultiplayerLine(line: String) {
+        multiplayerLines.addFirst("${time()} $line")
+        while (multiplayerLines.size > 20) multiplayerLines.removeLast()
+    }
+
+    private fun installId(): String =
+        Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "android-${Build.MODEL.hashCode()}"
+
     private fun LinearLayout.LayoutParams.withBottom(bottom: Int): LinearLayout.LayoutParams =
         apply { bottomMargin = bottom }
 
@@ -600,10 +854,9 @@ class MainActivity : ComponentActivity() {
 
     private fun date(ms: Long): String = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(ms))
 
-    private enum class Page {
-        Home,
-        Debug,
-        Gallery,
+    private enum class PlayMode {
+        Single,
+        Multiplayer,
     }
 
     private companion object {
