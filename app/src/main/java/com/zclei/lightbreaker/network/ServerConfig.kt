@@ -5,4 +5,6 @@ object ServerConfig {
     const val SERVER_HOST = "152.136.62.157"
     const val API_BASE_URL = "http://152.136.62.157/"
     const val DATABASE_NAME = "LightBreaker"
+    const val IMAGE_BASE_URL = "http://152.136.62.157/lightbreaker/images/"
+    const val IMAGE_MANIFEST_URL = "http://152.136.62.157/lightbreaker/images/manifest.json"
 }

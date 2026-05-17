@@ -6,6 +6,8 @@
 
 - 服务器地址：`http://152.136.62.157/`
 - 数据库：`LightBreaker`
+- 瓷砖底图目录：`http://152.136.62.157/lightbreaker/images/`
+- 图片清单：`http://152.136.62.157/lightbreaker/images/manifest.json`
 - APP 端只保留非敏感服务器元数据；数据库账号密码不写入源码或 APK。
 - 当前服务器已建立 `LightBreaker` 数据库及 `app_profiles`、`glove_devices`、`gallery_items`、`session_records`、`achievement_states`、`glove_packet_logs`、`sync_events` 表。
 
