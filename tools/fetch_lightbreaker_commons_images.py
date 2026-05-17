@@ -18,6 +18,8 @@ from pathlib import Path
 BASE_API = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "LightBreakerImageSeeder/1.0 (https://github.com/18857570088/Light-Breaker)"
 THUMB_WIDTH = "1400"
+LANDSCAPE_MIN_RATIO = 1.2
+LANDSCAPE_TARGET_RATIO = 1.6
 
 CATEGORIES = [
     {
@@ -44,9 +46,9 @@ CATEGORIES = [
         "nameEn": "Classic Masterworks",
         "description": "星空、睡莲、呐喊等公共领域经典绘画及馆藏高清复刻。",
         "queries": [
-            "The Starry Night Van Gogh painting filetype:bitmap",
+            "The Starry Night Van Gogh painting landscape filetype:bitmap",
             "Claude Monet Water Lilies painting filetype:bitmap",
-            "Edvard Munch The Scream painting filetype:bitmap",
+            "wide classic painting landscape filetype:bitmap",
             "Vincent van Gogh Sunflowers painting filetype:bitmap",
             "Katsushika Hokusai Great Wave painting filetype:bitmap",
             "Johannes Vermeer painting filetype:bitmap",
@@ -54,6 +56,9 @@ CATEGORIES = [
             "Sandro Botticelli painting filetype:bitmap",
             "J. M. W. Turner painting filetype:bitmap",
             "Claude Monet Impression Sunrise painting filetype:bitmap",
+            "Claude Monet landscape painting filetype:bitmap",
+            "Vincent van Gogh landscape painting filetype:bitmap",
+            "Hiroshige landscape print filetype:bitmap",
             "Renoir painting filetype:bitmap",
             "Cezanne painting filetype:bitmap",
             "Raphael painting filetype:bitmap",
@@ -86,17 +91,17 @@ CATEGORIES = [
         "nameEn": "Abstract Art",
         "description": "几何、水墨、波普、表现主义、色块与开放授权抽象图形。",
         "queries": [
-            "abstract geometric art filetype:bitmap",
-            "geometric pattern art filetype:bitmap",
-            "abstract watercolor art filetype:bitmap",
-            "ink wash abstract art filetype:bitmap",
-            "abstract expressionist painting filetype:bitmap",
-            "color field abstract painting filetype:bitmap",
-            "pop art pattern filetype:bitmap",
-            "kaleidoscope abstract art filetype:bitmap",
-            "generative art abstract filetype:bitmap",
-            "modern abstract painting public domain filetype:bitmap",
-            "abstract shapes colorful filetype:bitmap",
+            "wide abstract geometric art filetype:bitmap",
+            "geometric pattern landscape art filetype:bitmap",
+            "abstract watercolor landscape art filetype:bitmap",
+            "ink wash landscape abstract art filetype:bitmap",
+            "abstract expressionist painting landscape filetype:bitmap",
+            "color field abstract painting wide filetype:bitmap",
+            "pop art pattern wide filetype:bitmap",
+            "kaleidoscope abstract art wide filetype:bitmap",
+            "generative art abstract wide filetype:bitmap",
+            "modern abstract painting landscape filetype:bitmap",
+            "abstract shapes colorful wide filetype:bitmap",
         ],
     },
 ]
@@ -203,7 +208,7 @@ def is_candidate(page, info):
     if width < 900 or height < 600:
         return False
     ratio = width / max(height, 1)
-    if ratio < 0.45 or ratio > 2.8:
+    if ratio < LANDSCAPE_MIN_RATIO or ratio > 2.8:
         return False
     title = page.get("title", "").lower()
     if any(word in title for word in BAD_TITLE_WORDS):
@@ -217,6 +222,7 @@ def candidate_score(candidate):
     categories = clean_text((meta.get("Categories") or {}).get("value", "")).lower()
     width = int(info.get("width") or 0)
     height = int(info.get("height") or 0)
+    ratio = width / max(height, 1)
     score = 0
     if "featured pictures" in categories or "featured picture" in categories:
         score += 80
@@ -224,6 +230,7 @@ def candidate_score(candidate):
         score += 45
     if "valued images" in categories or "valued image" in categories:
         score += 30
+    score += max(0, int(45 - abs(ratio - LANDSCAPE_TARGET_RATIO) * 40))
     score += min(width * height // 1_000_000, 20)
     return score
 
@@ -323,6 +330,28 @@ def load_manifest(root):
         return {"version": 1, "categories": [], "images": []}
 
 
+def is_landscape_item(item):
+    width = int(item.get("width") or 0)
+    height = int(item.get("height") or 0)
+    return height > 0 and width / height >= LANDSCAPE_MIN_RATIO
+
+
+def parse_image_index(item, category_id):
+    match = re.match(rf"{re.escape(category_id)}_(\d+)$", item.get("id", ""))
+    return int(match.group(1)) if match else 0
+
+
+def prune_category_files(root, category_id, keep_items):
+    keep_files = {item.get("fileName") for item in keep_items}
+    category_dir = root / category_id
+    if not category_dir.exists():
+        return
+    for file_path in category_dir.glob("*.*"):
+        rel = file_path.relative_to(root).as_posix()
+        if rel not in keep_files:
+            file_path.unlink(missing_ok=True)
+
+
 def write_manifest(root, base_url, image_items):
     categories = [
         {
@@ -420,14 +449,28 @@ function filterCards(category){{
 def seed_category(category_id, root, base_url, target, workers):
     category = next(cat for cat in CATEGORIES if cat["id"] == category_id)
     manifest = load_manifest(root)
+    category_items = [item for item in manifest.get("images", []) if item.get("category") == category_id]
+    kept = [
+        item
+        for item in category_items
+        if is_landscape_item(item) and (root / item.get("fileName", "")).exists()
+    ][:target]
+    prune_category_files(root, category_id, kept)
     images = [item for item in manifest.get("images", []) if item.get("category") != category_id]
-    existing_urls = {item.get("sourceUrl") for item in manifest.get("images", []) if item.get("category") == category_id}
-    candidates = [item for item in gather_candidates(category, target + 80) if item["info"].get("descriptionurl") not in existing_urls]
-    selected = candidates[: target + 25]
-    if len(selected) < target:
-        print(f"warn only {len(selected)} candidates selected for {category_id}", flush=True)
+    existing_urls = {item.get("sourceUrl") for item in kept}
+    needed = max(0, target - len(kept))
+    if needed == 0:
+        print(f"kept {category_id}: {len(kept)} landscape images", flush=True)
+        images.extend(kept)
+        write_manifest(root, base_url, images)
+        return len(kept)
+    candidates = [item for item in gather_candidates(category, needed + 120) if item["info"].get("descriptionurl") not in existing_urls]
+    selected = candidates[: needed + 25]
+    if len(selected) < needed:
+        print(f"warn only {len(selected)} candidates selected for {category_id}; kept {len(kept)}", flush=True)
     downloaded = []
-    jobs = [(category, index + 1, candidate, root, base_url) for index, candidate in enumerate(selected)]
+    start_index = max([parse_image_index(item, category_id) for item in kept] + [0]) + 1
+    jobs = [(category, start_index + index, candidate, root, base_url) for index, candidate in enumerate(selected)]
     with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = [executor.submit(download_one, job) for job in jobs]
         for future in as_completed(futures):
@@ -439,17 +482,17 @@ def seed_category(category_id, root, base_url, target, workers):
             except Exception as exc:
                 print(f"warn download failed: {exc}", flush=True)
     downloaded.sort(key=lambda item: item["id"])
-    if len(downloaded) > target:
-        for item in downloaded[target:]:
+    if len(downloaded) > needed:
+        for item in downloaded[needed:]:
             extra_path = root / item["fileName"]
             try:
                 extra_path.unlink()
             except FileNotFoundError:
                 pass
-        downloaded = downloaded[:target]
-    images.extend(downloaded)
+        downloaded = downloaded[:needed]
+    images.extend(kept + downloaded)
     write_manifest(root, base_url, images)
-    return len(downloaded)
+    return len(kept) + len(downloaded)
 
 
 def main():
