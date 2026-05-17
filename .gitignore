@@ -1,0 +1,21 @@
+# Gradle / Android build output
+.gradle/
+build/
+**/build/
+
+# Local machine configuration
+local.properties
+
+# Packaged artifacts and signing material
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# IDE files
+.idea/
+*.iml
+
+# Local planning/protocol documents kept beside the workspace
+*.docx
+*.pdf
