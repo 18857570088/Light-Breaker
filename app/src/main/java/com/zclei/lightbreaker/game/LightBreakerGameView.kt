@@ -1,17 +1,23 @@
 package com.zclei.lightbreaker.game
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
 import com.zclei.lightbreaker.ble.GloveHand
 import com.zclei.lightbreaker.mural.GeneratedMural
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -20,14 +26,19 @@ class LightBreakerGameView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 2f
     }
     private val tileRect = RectF()
     private val boardRect = RectF()
+    private val imageSrc = Rect()
     private var mural: GeneratedMural? = null
     private var snapshot: GameSnapshot? = null
+    private var muralBitmap: Bitmap? = null
+    private var loadedImageUrl: String? = null
+    private var loadingImageUrl: String? = null
 
     fun setGameState(
         mural: GeneratedMural?,
@@ -35,6 +46,7 @@ class LightBreakerGameView @JvmOverloads constructor(
     ) {
         this.mural = mural
         this.snapshot = snapshot
+        loadMuralBitmapIfNeeded(mural?.imageUrl)
         invalidate()
     }
 
@@ -81,6 +93,15 @@ class LightBreakerGameView @JvmOverloads constructor(
         mural: GeneratedMural?,
         progress: Float,
     ) {
+        val bitmap = muralBitmap
+        if (bitmap != null) {
+            drawBitmapCenterCrop(canvas, bitmap, rect)
+            if (progress >= 50f) {
+                drawLightSweep(canvas, rect, progress)
+            }
+            return
+        }
+
         val seed = mural?.seed ?: 8
         val colors = palette(seed)
         paint.shader =
@@ -111,6 +132,50 @@ class LightBreakerGameView @JvmOverloads constructor(
         if (progress >= 50f) {
             drawLightSweep(canvas, rect, progress)
         }
+    }
+
+    private fun drawBitmapCenterCrop(
+        canvas: Canvas,
+        bitmap: Bitmap,
+        rect: RectF,
+    ) {
+        val scale = max(rect.width() / bitmap.width, rect.height() / bitmap.height)
+        val srcW = (rect.width() / scale).toInt().coerceAtMost(bitmap.width)
+        val srcH = (rect.height() / scale).toInt().coerceAtMost(bitmap.height)
+        val srcLeft = ((bitmap.width - srcW) / 2).coerceAtLeast(0)
+        val srcTop = ((bitmap.height - srcH) / 2).coerceAtLeast(0)
+        imageSrc.set(srcLeft, srcTop, srcLeft + srcW, srcTop + srcH)
+        canvas.drawBitmap(bitmap, imageSrc, rect, bitmapPaint)
+    }
+
+    private fun loadMuralBitmapIfNeeded(imageUrl: String?) {
+        if (imageUrl.isNullOrBlank()) {
+            muralBitmap = null
+            loadedImageUrl = null
+            loadingImageUrl = null
+            return
+        }
+        if (imageUrl == loadedImageUrl || imageUrl == loadingImageUrl) return
+        muralBitmap = null
+        loadingImageUrl = imageUrl
+        Thread {
+            val bitmap =
+                runCatching {
+                    val connection = URL(imageUrl).openConnection() as HttpURLConnection
+                    connection.connectTimeout = 8_000
+                    connection.readTimeout = 15_000
+                    connection.setRequestProperty("User-Agent", "LightBreakerAndroid/1.0")
+                    connection.inputStream.use { BitmapFactory.decodeStream(it) }
+                }.getOrNull()
+            post {
+                if (loadingImageUrl == imageUrl) {
+                    muralBitmap = bitmap
+                    loadedImageUrl = if (bitmap != null) imageUrl else null
+                    loadingImageUrl = null
+                    invalidate()
+                }
+            }
+        }.start()
     }
 
     private fun drawMuralLandmarks(

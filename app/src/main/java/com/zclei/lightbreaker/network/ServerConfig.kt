@@ -7,4 +7,5 @@ object ServerConfig {
     const val DATABASE_NAME = "LightBreaker"
     const val IMAGE_BASE_URL = "http://152.136.62.157/lightbreaker/images/"
     const val IMAGE_MANIFEST_URL = "http://152.136.62.157/lightbreaker/images/manifest.json"
+    const val IMAGE_REVIEW_URL = "http://152.136.62.157/lightbreaker/images/review.html"
 }

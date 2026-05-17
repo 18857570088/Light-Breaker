@@ -32,8 +32,8 @@ import com.zclei.lightbreaker.game.GameSnapshot
 import com.zclei.lightbreaker.game.LightBreakerGameEngine
 import com.zclei.lightbreaker.game.LightBreakerGameView
 import com.zclei.lightbreaker.hit.HitEvent
+import com.zclei.lightbreaker.mural.CloudMuralGenerationApi
 import com.zclei.lightbreaker.mural.GeneratedMural
-import com.zclei.lightbreaker.mural.MockMuralGenerationApi
 import com.zclei.lightbreaker.network.ServerConfig
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -44,7 +44,7 @@ import kotlin.math.roundToInt
 class MainActivity : ComponentActivity() {
     private lateinit var repository: LightBreakerRepository
     private lateinit var bleManager: BleGloveManager
-    private val muralApi = MockMuralGenerationApi()
+    private val muralApi = CloudMuralGenerationApi()
     private val engine = LightBreakerGameEngine()
 
     private lateinit var root: LinearLayout
@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
         buildShell()
         bindFlows()
         showHome()
-        lifecycleScope.launch { generateMural(prompt = "击碎压力，露出治愈光影", theme = "治愈光影", silent = true) }
+        lifecycleScope.launch { generateMural(prompt = "击碎压力，露出治愈光影", theme = "自然风光", silent = true) }
     }
 
     override fun onDestroy() {
@@ -155,7 +155,7 @@ class MainActivity : ComponentActivity() {
             }
         val themeInput =
             EditText(this).apply {
-                hint = "主题，例如：护士节、城市夜景、森林萤火"
+                hint = "图片类型：自然风光、名画再现、城市建筑、抽象艺术"
                 setHintTextColor(Color.parseColor("#687899"))
                 setTextColor(Color.WHITE)
                 setSingleLine(true)
@@ -174,9 +174,17 @@ class MainActivity : ComponentActivity() {
                 val muralCard = infoCard("")
                 homeMuralText = muralCard
                 addView(muralCard)
-                addView(label("Mock 云端画作"))
+                addView(label("云端图片类型"))
                 addView(promptInput, LinearLayout.LayoutParams(match, wrap).withBottom(dp(8)))
                 addView(themeInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(10)))
+                addView(row(
+                    actionButton("自然风光", "#2563EB") { themeInput.setText("自然风光") },
+                    actionButton("名画再现", "#7C3AED") { themeInput.setText("名画再现") },
+                ))
+                addView(row(
+                    actionButton("城市建筑", "#0F766E") { themeInput.setText("城市建筑") },
+                    actionButton("抽象艺术", "#EA580C") { themeInput.setText("抽象艺术") },
+                ))
                 addView(row(
                     actionButton("生成画作", "#2563EB") {
                         lifecycleScope.launch {
@@ -349,7 +357,7 @@ class MainActivity : ComponentActivity() {
         theme: String,
         silent: Boolean = false,
     ) {
-        if (!silent) toast("正在生成 Mock 云端画作")
+        if (!silent) toast("正在从云端图片库选择画作")
         currentMural = muralApi.generate(prompt, theme)
         currentSnapshot = null
         refreshHome()
@@ -400,7 +408,9 @@ class MainActivity : ComponentActivity() {
         homeProgressText?.text = "等级 Lv.${progressStats.level} · XP ${progressStats.xp}\n最近设备：左 ${progressStats.lastLeftDevice ?: "--"} · 右 ${progressStats.lastRightDevice ?: "--"}"
         homeDeviceText?.text = buildDeviceStatusText()
         homeMuralText?.text =
-            currentMural?.let { "当前画作：${it.title}\n主题：${it.theme}\n提示词：${it.prompt}" }
+            currentMural?.let {
+                "当前画作：${it.title}\n类型：${it.theme} · ${it.categoryId}\n图片：${it.imageUrl ?: "程序绘制底图"}\n提示词：${it.prompt}"
+            }
                 ?: "当前画作：尚未生成"
     }
 
@@ -557,6 +567,7 @@ class MainActivity : ComponentActivity() {
     private fun lighten(color: String): String =
         when (color.uppercase(Locale.US)) {
             "#2563EB" -> "#60A5FA"
+            "#7C3AED" -> "#A78BFA"
             "#16A34A" -> "#4ADE80"
             "#0F766E" -> "#2DD4BF"
             "#B45309" -> "#F59E0B"

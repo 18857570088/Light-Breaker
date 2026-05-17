@@ -19,3 +19,6 @@ local.properties
 # Local planning/protocol documents kept beside the workspace
 *.docx
 *.pdf
+
+# Downloaded image staging cache
+.image_staging/
