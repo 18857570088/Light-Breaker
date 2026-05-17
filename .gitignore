@@ -19,6 +19,7 @@ local.properties
 # Local planning/protocol documents kept beside the workspace
 *.docx
 *.pdf
+!docs/*.docx
 
 # Downloaded image staging cache
 .image_staging/
@@ -27,3 +28,6 @@ local.properties
 backend/.venv/
 __pycache__/
 *.pyc
+
+# Document render QA outputs
+docs/manual_render/
