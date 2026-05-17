@@ -168,7 +168,7 @@ class MainActivity : ComponentActivity() {
         playMode = PlayMode.Single
         content.removeAllViews()
         val promptInput = input("输入想击碎的压力或画作关键词", minLines = 2)
-        val themeInput = input("图片类型：自然风光、名画再现、城市建筑、抽象艺术")
+        val themeInput = input("图片类型：自然风光、名画再现、城市建筑、抽象艺术、萌宠、科幻")
         content.addView(
             scroll {
                 addView(sectionTitle("训练入口"))
@@ -680,6 +680,10 @@ class MainActivity : ComponentActivity() {
             actionButton("城市建筑", "#0F766E") { input.setText("城市建筑") },
             actionButton("抽象艺术", "#EA580C") { input.setText("抽象艺术") },
         ))
+        addView(row(
+            actionButton("萌宠", "#DB2777") { input.setText("萌宠") },
+            actionButton("科幻", "#0891B2") { input.setText("科幻") },
+        ))
     }
 
     private fun LinearLayout.addDifficultyButtons() {
@@ -811,6 +815,8 @@ class MainActivity : ComponentActivity() {
             "#0F766E" -> "#2DD4BF"
             "#B45309" -> "#F59E0B"
             "#EA580C" -> "#FB923C"
+            "#DB2777" -> "#F472B6"
+            "#0891B2" -> "#22D3EE"
             "#475569" -> "#64748B"
             else -> "#3B82F6"
         }

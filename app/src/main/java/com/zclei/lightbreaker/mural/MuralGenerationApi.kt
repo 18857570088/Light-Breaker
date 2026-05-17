@@ -35,6 +35,8 @@ object MuralImageCategories {
             MuralImageCategory("masterworks", "名画再现", "Classic Masterworks", listOf("名画", "经典", "星空", "睡莲", "呐喊", "master")),
             MuralImageCategory("city", "城市建筑", "City Architecture", listOf("城市", "建筑", "夜景", "街道", "地标", "市集", "city")),
             MuralImageCategory("abstract", "抽象艺术", "Abstract Art", listOf("抽象", "几何", "水墨", "波普", "表现", "abstract")),
+            MuralImageCategory("pets", "萌宠", "Cute Pets", listOf("萌宠", "宠物", "猫", "狗", "兔", "pets", "cat", "dog")),
+            MuralImageCategory("scifi", "科幻", "Science Fiction", listOf("科幻", "太空", "星云", "火箭", "宇航员", "火星", "scifi", "space")),
         )
 
     fun match(

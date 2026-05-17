@@ -11,7 +11,7 @@
 - 瓷砖底图目录：`http://152.136.62.157/lightbreaker/images/`
 - 图片清单：`http://152.136.62.157/lightbreaker/images/manifest.json`
 - 图片审核页：`http://152.136.62.157/lightbreaker/images/review.html`
-- 图片类型：自然风光、名画再现、城市建筑、抽象艺术，每类 100 张，均已按手机横屏训练筛选为横向图片。
+- 图片类型：自然风光 120 张（含新增海景 20 张）、名画再现 100 张、城市建筑 100 张、抽象艺术 100 张、萌宠 50 张、科幻 50 张，均已按手机横屏训练筛选为横向图片。
 - APP 端只保留非敏感服务器元数据；数据库账号密码不写入源码或 APK。
 - 当前服务器已建立 `LightBreaker` 数据库及 `app_profiles`、`glove_devices`、`gallery_items`、`session_records`、`achievement_states`、`glove_packet_logs`、`sync_events` 表。
 - 二期已增加 `multiplayer_rooms`、`multiplayer_players`、`multiplayer_events`、`multiplayer_results`、`team_leaderboards` 表，并部署 FastAPI 服务 `lightbreaker.service`。
@@ -59,7 +59,7 @@ cd D:\2026\202605\0518
 
 ## 图片素材采集
 
-服务器图片素材通过 `tools/fetch_lightbreaker_commons_images.py` 从 Wikimedia Commons API 采集，脚本只保留宽高比不低于 `1.2:1` 的横屏图片，并在 `manifest.json` / `sources.csv` 中保留来源、作者和许可证信息。
+服务器图片素材通过 `tools/fetch_lightbreaker_commons_images.py` 从 Wikimedia Commons API 采集，脚本只保留宽高比不低于 `1.2:1` 的横屏图片，并在 `manifest.json` / `sources.csv` 中保留来源、作者和许可证信息。图库已扩展自然风光海景、萌宠和科幻类别。
 
 ## 后端
 
