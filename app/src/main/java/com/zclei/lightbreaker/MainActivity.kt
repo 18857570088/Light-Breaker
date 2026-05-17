@@ -34,6 +34,7 @@ import com.zclei.lightbreaker.game.LightBreakerGameView
 import com.zclei.lightbreaker.hit.HitEvent
 import com.zclei.lightbreaker.mural.GeneratedMural
 import com.zclei.lightbreaker.mural.MockMuralGenerationApi
+import com.zclei.lightbreaker.network.ServerConfig
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -109,7 +110,7 @@ class MainActivity : ComponentActivity() {
             background = solid("#0D1528")
             addView(
                 TextView(context).apply {
-                    text = "光影破壁者"
+                    text = ServerConfig.APP_NAME
                     setTextColor(Color.WHITE)
                     setTypeface(Typeface.DEFAULT_BOLD)
                     textSize = 22f
@@ -203,6 +204,7 @@ class MainActivity : ComponentActivity() {
         content.addView(
             scroll {
                 addView(sectionTitle("蓝牙调试"))
+                addView(infoCard("服务器 ${ServerConfig.API_BASE_URL}\n数据库 ${ServerConfig.DATABASE_NAME}"))
                 val statusCard = infoCard("")
                 debugStatusText = statusCard
                 addView(statusCard)

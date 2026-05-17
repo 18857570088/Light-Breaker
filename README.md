@@ -1,6 +1,13 @@
-# 光影破壁者 Light Breaker
+# LightBreaker
 
 原生 Android MVP：拳击手套蓝牙计拳、击碎瓷砖揭开 Mock 云端画作、本地画廊与等级成长。
+
+## 服务器
+
+- 服务器地址：`http://152.136.62.157/`
+- 数据库：`LightBreaker`
+- APP 端只保留非敏感服务器元数据；数据库账号密码不写入源码或 APK。
+- 当前服务器已建立 `LightBreaker` 数据库及 `app_profiles`、`glove_devices`、`gallery_items`、`session_records`、`achievement_states`、`glove_packet_logs`、`sync_events` 表。
 
 ## 蓝牙协议
 
