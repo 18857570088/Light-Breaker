@@ -1,9 +1,9 @@
 package com.zclei.lightbreaker.ble
 
 enum class GloveHand(val displayName: String, val devicePrefix: String) {
-    Left("左手", "BOXING#PL"),
-    Right("右手", "BOXING#PR"),
-    Unknown("未知", "BOXING#P"),
+    Left("左手", "BOXING#L"),
+    Right("右手", "BOXING#R"),
+    Unknown("未知", "BOXING#"),
 }
 
 data class GlovePacket(
@@ -40,14 +40,13 @@ object GlovePacketParser {
 
     fun handFromName(name: String?): GloveHand =
         when {
-            name.orEmpty().startsWith(GloveHand.Left.devicePrefix, ignoreCase = true) -> GloveHand.Left
-            name.orEmpty().startsWith(GloveHand.Right.devicePrefix, ignoreCase = true) -> GloveHand.Right
-            name.orEmpty().startsWith("BOXING#", ignoreCase = true) -> GloveHand.Unknown
+            LEFT_NAME_PATTERN.matches(name.orEmpty()) -> GloveHand.Left
+            RIGHT_NAME_PATTERN.matches(name.orEmpty()) -> GloveHand.Right
             else -> GloveHand.Unknown
         }
 
     fun isSupportedName(name: String?): Boolean =
-        handFromName(name) != GloveHand.Unknown || name.orEmpty().startsWith("BOXING#", ignoreCase = true)
+        handFromName(name) != GloveHand.Unknown
 
     fun parseOrNull(
         payload: ByteArray,
@@ -98,6 +97,9 @@ object GlovePacketParser {
     }
 
     private fun u(byte: Byte): Int = byte.toInt() and 0xFF
+
+    private val LEFT_NAME_PATTERN = Regex("^BOXING#L[0-9A-Za-z]{6}$", RegexOption.IGNORE_CASE)
+    private val RIGHT_NAME_PATTERN = Regex("^BOXING#R[0-9A-Za-z]{6}$", RegexOption.IGNORE_CASE)
 }
 
 fun ByteArray.toHexString(): String =

@@ -1,6 +1,7 @@
 package com.zclei.lightbreaker.ble;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -55,8 +56,14 @@ public class GlovePacketParserTest {
         assertEquals("已充满", full.getBatteryText());
         assertEquals(3, GlovePacketParser.INSTANCE.countDelta(254, 1));
         assertEquals(1, GlovePacketParser.INSTANCE.countDelta(255, 0));
-        assertTrue(GlovePacketParser.INSTANCE.isSupportedName("BOXING#PL000001"));
-        assertTrue(GlovePacketParser.INSTANCE.isSupportedName("BOXING#PR000001"));
+        assertTrue(GlovePacketParser.INSTANCE.isSupportedName("BOXING#L000001"));
+        assertTrue(GlovePacketParser.INSTANCE.isSupportedName("BOXING#RABC123"));
+        assertEquals(GloveHand.Left, GlovePacketParser.INSTANCE.handFromName("BOXING#L000001"));
+        assertEquals(GloveHand.Right, GlovePacketParser.INSTANCE.handFromName("BOXING#RABC123"));
+        assertFalse(GlovePacketParser.INSTANCE.isSupportedName("BOXING#PL000001"));
+        assertFalse(GlovePacketParser.INSTANCE.isSupportedName("BOXING#R12345"));
+        assertFalse(GlovePacketParser.INSTANCE.isSupportedName("BOXING#L12345!"));
+        assertFalse(GlovePacketParser.INSTANCE.isSupportedName("BOXING#XABC123"));
     }
 
     private byte[] packetWithBattery(int battery) {

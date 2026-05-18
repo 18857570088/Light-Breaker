@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  光影破壁者 Light-Breaker — App Icon
+  Size: 180 × 180 px  (iPhone @3x Home Screen)
+  Same 1024-coordinate viewBox, scaled via width/height.
+  2026 · Light-Breaker / BoxingFitness Design Team
+-->
+<svg
+  width="180"
+  height="180"
+  viewBox="0 0 1024 1024"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img">
+
+  <title>光影破壁者 Light-Breaker 180px — 暗夜破光版</title>
+  <desc>iPhone @3x 主屏图标 180×180px，光影破壁者暗夜破光版，拳套+闪电。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0A0810"/>
+      <stop offset="55%"  stop-color="#12101E"/>
+      <stop offset="100%" stop-color="#0C0A14"/>
+    </linearGradient>
+    <radialGradient id="burst" cx="50%" cy="47%" r="45%">
+      <stop offset="0%"   stop-color="#FFD060" stop-opacity="0.58"/>
+      <stop offset="40%"  stop-color="#FF8C00" stop-opacity="0.28"/>
+      <stop offset="75%"  stop-color="#FF4400" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#FF4400" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fist" cx="38%" cy="28%" r="65%">
+      <stop offset="0%"   stop-color="#FFC840"/>
+      <stop offset="45%"  stop-color="#E07800"/>
+      <stop offset="75%"  stop-color="#B05000"/>
+      <stop offset="100%" stop-color="#8C3800"/>
+    </radialGradient>
+    <linearGradient id="knuckle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FFD860"/>
+      <stop offset="100%" stop-color="#E08800"/>
+    </linearGradient>
+    <linearGradient id="cuff" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#A04800"/>
+      <stop offset="100%" stop-color="#6A2800"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FFFFFF"/>
+      <stop offset="28%"  stop-color="#FFF8C0"/>
+      <stop offset="65%"  stop-color="#FFE840"/>
+      <stop offset="100%" stop-color="#FFCC00"/>
+    </linearGradient>
+    <radialGradient id="bolt_glow" cx="50%" cy="48%" r="50%">
+      <stop offset="0%"   stop-color="#FFFF88" stop-opacity="0.75"/>
+      <stop offset="55%"  stop-color="#FFE840" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#FFE840" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="clip"><rect width="1024" height="1024" rx="221"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#clip)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <!-- 星点 -->
+    <circle cx="188" cy="154" r="7.7"  fill="#FFD060" opacity="0.50"/>
+    <circle cx="837" cy="120" r="6.0"  fill="#FF8C00" opacity="0.40"/>
+    <circle cx="922" cy="478" r="5.1"  fill="#FFD060" opacity="0.35"/>
+    <circle cx="120" cy="632" r="6.0"  fill="#FFA040" opacity="0.40"/>
+    <circle cx="871" cy="768" r="5.1"  fill="#FFD060" opacity="0.30"/>
+
+    <!-- 光爆 -->
+    <ellipse cx="512" cy="482" rx="342" ry="342" fill="url(#burst)"/>
+
+    <!-- 光芒 -->
+    <polygon points="512,482 683,439 666,529" fill="#FFD060" opacity="0.18"/>
+    <polygon points="512,482 649,316 683,393" fill="#FFE080" opacity="0.16"/>
+    <polygon points="512,482 469,299 555,299" fill="#FFD060" opacity="0.18"/>
+    <polygon points="512,482 341,316 376,393" fill="#FFE080" opacity="0.16"/>
+    <polygon points="512,482 341,439 341,529" fill="#FFD060" opacity="0.18"/>
+    <polygon points="512,482 341,614 376,683" fill="#FFE080" opacity="0.14"/>
+    <polygon points="512,482 469,665 555,665" fill="#FFD060" opacity="0.16"/>
+    <polygon points="512,482 649,614 683,546" fill="#FFE080" opacity="0.14"/>
+
+    <!-- 破碎瓷砖 -->
+    <rect x="171" y="188" width="120" height="86"  rx="17" fill="#2A1E4A" opacity="0.93" transform="rotate(-18,231,231)"/>
+    <rect x="69"  y="325" width="94"  height="68"  rx="14" fill="#1E1638" opacity="0.88" transform="rotate(-32,116,359)"/>
+    <rect x="240" y="86"  width="86"  height="60"  rx="13" fill="#342858" opacity="0.83" transform="rotate(12,283,116)"/>
+    <rect x="701" y="120" width="120" height="77"  rx="17" fill="#1E1638" opacity="0.93" transform="rotate(22,761,158)"/>
+    <rect x="819" y="257" width="86"  height="68"  rx="14" fill="#2A1E4A" opacity="0.88" transform="rotate(38,862,291)"/>
+    <rect x="632" y="69"  width="77"  height="60"  rx="13" fill="#342858" opacity="0.83" transform="rotate(-14,670,99)"/>
+    <rect x="86"  y="615" width="111" height="77"  rx="17" fill="#2A1E4A" opacity="0.90" transform="rotate(25,141,653)"/>
+    <rect x="188" y="751" width="86"  height="68"  rx="14" fill="#1E1638" opacity="0.85" transform="rotate(-20,231,785)"/>
+    <rect x="768" y="666" width="120" height="77"  rx="17" fill="#2A1E4A" opacity="0.90" transform="rotate(-28,828,704)"/>
+    <rect x="683" y="785" width="86"  height="60"  rx="14" fill="#1E1638" opacity="0.85" transform="rotate(18,726,815)"/>
+    <rect x="853" y="529" width="77"  height="68"  rx="13" fill="#342858" opacity="0.80" transform="rotate(42,891,563)"/>
+
+    <!-- 飞散轨迹 -->
+    <line x1="512" y1="482" x2="205" y2="222"  stroke="#FFD060" stroke-width="6.0" stroke-linecap="round" opacity="0.28"/>
+    <line x1="512" y1="482" x2="752" y2="154"  stroke="#FFD060" stroke-width="6.0" stroke-linecap="round" opacity="0.28"/>
+    <line x1="512" y1="482" x2="120" y2="649"  stroke="#FFD060" stroke-width="5.1" stroke-linecap="round" opacity="0.22"/>
+    <line x1="512" y1="482" x2="820" y2="700"  stroke="#FFD060" stroke-width="5.1" stroke-linecap="round" opacity="0.22"/>
+    <line x1="512" y1="482" x2="103" y2="359"  stroke="#FFA040" stroke-width="5.1" stroke-linecap="round" opacity="0.22"/>
+    <line x1="512" y1="482" x2="222" y2="785"  stroke="#FFA040" stroke-width="4.7" stroke-linecap="round" opacity="0.20"/>
+    <line x1="512" y1="482" x2="854" y2="291"  stroke="#FFA040" stroke-width="5.1" stroke-linecap="round" opacity="0.22"/>
+    <line x1="512" y1="482" x2="717" y2="820"  stroke="#FFA040" stroke-width="4.7" stroke-linecap="round" opacity="0.20"/>
+
+    <!-- 护腕 -->
+    <rect x="401" y="547" width="222" height="77"  rx="26" fill="url(#cuff)" opacity="0.94"/>
+    <rect x="418" y="554" width="85"  height="15"  rx="7.5" fill="white" opacity="0.16"/>
+    <line x1="418" y1="578" x2="606" y2="578" stroke="#6A2800" stroke-width="2.6" stroke-linecap="round" opacity="0.55"/>
+
+    <!-- 拳套主体 -->
+    <rect x="376" y="367" width="273" height="196" rx="60"  fill="url(#fist)"    opacity="0.97"/>
+    <rect x="384" y="324" width="256" height="94"  rx="47"  fill="url(#knuckle)" opacity="0.94"/>
+    <rect x="393" y="316" width="68"  height="60"  rx="26"  fill="#FFD870" opacity="0.64"/>
+    <rect x="486" y="316" width="68"  height="60"  rx="26"  fill="#FFD870" opacity="0.64"/>
+    <rect x="571" y="316" width="59"  height="60"  rx="26"  fill="#FFD870" opacity="0.64"/>
+    <rect x="393" y="334" width="120" height="21"  rx="10.5" fill="white" opacity="0.26"/>
+    <rect x="393" y="367" width="222" height="15"  rx="7.5"  fill="white" opacity="0.13"/>
+    <line x1="470" y1="350" x2="470" y2="427" stroke="#9C4A00" stroke-width="6.8" stroke-linecap="round" opacity="0.45"/>
+    <line x1="554" y1="350" x2="554" y2="427" stroke="#9C4A00" stroke-width="6.8" stroke-linecap="round" opacity="0.45"/>
+
+    <!-- 闪电外发光晕 -->
+    <ellipse cx="516" cy="461" rx="60" ry="85" fill="url(#bolt_glow)"/>
+
+    <!-- 闪电主体 -->
+    <polygon
+      points="537,359  477,452  520,452  494,572  580,469  537,469"
+      fill="url(#bolt)" opacity="0.97"/>
+
+    <!-- 闪电内芯高光 -->
+    <polygon
+      points="529,376  482,449  516,449  495,548  566,472  531,472"
+      fill="white" opacity="0.30"/>
+
+    <!-- 闪电顶端强光 -->
+    <ellipse cx="534" cy="368" rx="18" ry="12" fill="white" opacity="0.42"/>
+
+    <!-- 闪电底部反光 -->
+    <ellipse cx="522" cy="574" rx="26" ry="7.7" fill="#FFEE44" opacity="0.40"/>
+
+    <!-- 冲击波环 -->
+    <circle cx="512" cy="461" r="188" fill="none" stroke="#FFD060" stroke-width="6.8" opacity="0.36"/>
+    <circle cx="512" cy="461" r="239" fill="none" stroke="#FF8C00" stroke-width="4.3" opacity="0.20"/>
+
+    <!-- 文字 -->
+    <rect x="0" y="819" width="1024" height="205" fill="#060412" opacity="0.82"/>
+    <text x="512" y="912" text-anchor="middle"
+          font-family="'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif"
+          font-size="111" font-weight="700" fill="#FFD060" letter-spacing="10.2">Light-Breaker</text>
+    <text x="512" y="976" text-anchor="middle"
+          font-family="'SF Pro Display','Helvetica Neue',Helvetica,Arial,sans-serif"
+          font-size="68" font-weight="400" fill="#FF8C00" letter-spacing="6.8" opacity="0.86">光影破壁者</text>
+  </g>
+</svg>

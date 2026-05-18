@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  光影破壁者 Light-Breaker — Design Specification
+  暗夜破光版 · Color Tokens · Size Chart · Design Elements
+  960 × 640 px
+  2026 · Light-Breaker / BoxingFitness Design Team
+-->
+<svg
+  width="960"
+  height="640"
+  viewBox="0 0 960 640"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img">
+
+  <title>光影破壁者 Light-Breaker — Design Specification</title>
+  <desc>暗夜破光版图标完整设计规范：色彩Token、输出尺寸规格、视觉元素说明。</desc>
+
+  <!-- 背景 -->
+  <rect width="960" height="640" fill="#0A0810"/>
+  <!-- 顶部金色条 -->
+  <rect x="0" y="0" width="960" height="4" fill="#FFD060"/>
+  <!-- 底部金色条 -->
+  <rect x="0" y="636" width="960" height="4" fill="#FF8C00"/>
+
+  <!-- ── 标题 ── -->
+  <text x="480" y="36" text-anchor="middle"
+        font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="20" font-weight="700" fill="#FFD060">Light-Breaker  光影破壁者  ·  Design Specification</text>
+  <text x="480" y="56" text-anchor="middle"
+        font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="11" fill="#8880AA">暗夜破光版  ·  拳套 + 闪电  ·  Color Tokens  ·  Output Sizes  ·  2026  ·  BoxingFitness Design Team</text>
+
+  <line x1="32" y1="68" x2="928" y2="68" stroke="#2C2848" stroke-width="1"/>
+
+  <!-- ══════════ COL 1: 图标色彩 Token ══════════ -->
+  <text x="48" y="90" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="11" font-weight="700" fill="#FFD060" letter-spacing="1">COLOR TOKENS</text>
+
+  <!-- 背景 -->
+  <rect x="48"  y="98"  width="272" height="22" rx="5" fill="#0A0810" stroke="#2C2848" stroke-width=".8"/>
+  <text x="62"  y="113" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#8880AA">背景渐变起点</text>
+  <text x="312" y="113" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#0A0810</text>
+
+  <rect x="48"  y="126" width="272" height="22" rx="5" fill="#12101E" stroke="#2C2848" stroke-width=".8"/>
+  <text x="62"  y="141" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#8880AA">背景渐变终点</text>
+  <text x="312" y="141" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#12101E</text>
+
+  <!-- 光爆 -->
+  <rect x="48"  y="154" width="132" height="22" rx="5" fill="#FFD060"/>
+  <rect x="186" y="154" width="134" height="22" rx="5" fill="#FF8C00"/>
+  <text x="62"  y="169" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">光爆中心金 / 橙</text>
+  <text x="312" y="169" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#FFD060 · #FF8C00</text>
+
+  <rect x="48"  y="182" width="132" height="22" rx="5" fill="#FFE080"/>
+  <rect x="186" y="182" width="134" height="22" rx="5" fill="#FF4400"/>
+  <text x="62"  y="197" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">光芒射线 / 外层渐消</text>
+  <text x="312" y="197" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#FFE080 · #FF4400</text>
+
+  <!-- 拳套 -->
+  <rect x="48"  y="210" width="132" height="22" rx="5" fill="#FFC840"/>
+  <rect x="186" y="210" width="134" height="22" rx="5" fill="#8C3800"/>
+  <text x="62"  y="225" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">拳套渐变 高光/暗部</text>
+  <text x="312" y="225" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#FFC840 → #8C3800</text>
+
+  <rect x="48"  y="238" width="132" height="22" rx="5" fill="#FFD860"/>
+  <rect x="186" y="238" width="134" height="22" rx="5" fill="#E08800"/>
+  <text x="62"  y="253" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">指节顶面渐变</text>
+  <text x="312" y="253" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#FFD860 → #E08800</text>
+
+  <rect x="48"  y="266" width="132" height="22" rx="5" fill="#A04800"/>
+  <rect x="186" y="266" width="134" height="22" rx="5" fill="#6A2800"/>
+  <text x="62"  y="281" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="white">护腕渐变</text>
+  <text x="312" y="281" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#A04800 → #6A2800</text>
+
+  <!-- 闪电 -->
+  <rect x="48"  y="294" width="272" height="22" rx="5" fill="#FFFFFF"/>
+  <text x="62"  y="309" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">闪电顶端（白色强光）</text>
+  <text x="312" y="309" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#8880AA">#FFFFFF</text>
+
+  <rect x="48"  y="322" width="132" height="22" rx="5" fill="#FFF8C0"/>
+  <rect x="186" y="322" width="134" height="22" rx="5" fill="#FFE840"/>
+  <text x="62"  y="337" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">闪电中段渐变</text>
+  <text x="312" y="337" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#FFF8C0 → #FFE840</text>
+
+  <rect x="48"  y="350" width="272" height="22" rx="5" fill="#FFCC00"/>
+  <text x="62"  y="365" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">闪电底端金黄</text>
+  <text x="312" y="365" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">#FFCC00</text>
+
+  <rect x="48"  y="378" width="272" height="22" rx="5" fill="#FFEE44"/>
+  <text x="62"  y="393" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">闪电底部反光椭圆</text>
+  <text x="312" y="393" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">#FFEE44  opacity 40%</text>
+
+  <!-- 瓷砖/文字 -->
+  <rect x="48"  y="406" width="132" height="22" rx="5" fill="#2A1E4A"/>
+  <rect x="186" y="406" width="134" height="22" rx="5" fill="#342858"/>
+  <text x="62"  y="421" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="white">破碎瓷砖暗紫系</text>
+  <text x="312" y="421" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#FFD060">#2A1E4A · #342858</text>
+
+  <rect x="48"  y="434" width="272" height="22" rx="5" fill="#FFD060"/>
+  <text x="62"  y="449" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">文字 Light-Breaker</text>
+  <text x="312" y="449" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="#0A0810">#FFD060  Bold  letter-spacing 10.2</text>
+
+  <rect x="48"  y="462" width="272" height="22" rx="5" fill="#FF8C00"/>
+  <text x="62"  y="477" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="white">副标题 光影破壁者</text>
+  <text x="312" y="477" text-anchor="end" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="10" fill="white">#FF8C00  Regular  opacity 86%</text>
+
+  <!-- ══════════ 竖分隔 ══════════ -->
+  <line x1="342" y1="68" x2="342" y2="620" stroke="#2C2848" stroke-width="1"/>
+
+  <!-- ══════════ COL 2: 输出规格 ══════════ -->
+  <text x="362" y="90" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="11" font-weight="700" fill="#FFD060" letter-spacing="1">OUTPUT SPECIFICATIONS</text>
+
+  <!-- 表头 -->
+  <rect x="362" y="98" width="566" height="20" rx="4" fill="#1C1830"/>
+  <text x="374" y="112" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#8880AA">平台 / 用途</text>
+  <text x="590" y="112" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#8880AA">尺寸 (px)</text>
+  <text x="686" y="112" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#8880AA">圆角</text>
+  <text x="760" y="112" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#8880AA">源文件</text>
+
+  <!-- 数据行 -->
+  <rect x="362" y="122" width="566" height="18" rx="3" fill="#12101E"/>
+  <text x="374" y="134" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">App Store 主图标（iOS）</text>
+  <text x="590" y="134" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FFD060">1024 × 1024</text>
+  <text x="686" y="134" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">系统自动裁切</text>
+  <text x="760" y="134" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FF8C00">01_LightBreaker_NightGold_1024.svg</text>
+
+  <rect x="362" y="144" width="566" height="18" rx="3" fill="#0E0C1C"/>
+  <text x="374" y="156" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">iPhone @3x 主屏</text>
+  <text x="590" y="156" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FFD060">180 × 180</text>
+  <text x="686" y="156" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">~38 px</text>
+  <text x="760" y="156" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FF8C00">02_LightBreaker_NightGold_180x180.svg</text>
+
+  <rect x="362" y="166" width="566" height="18" rx="3" fill="#12101E"/>
+  <text x="374" y="178" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">iPhone @2x 主屏 / Spotlight</text>
+  <text x="590" y="178" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FFD060">120 × 120</text>
+  <text x="686" y="178" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">~26 px</text>
+  <text x="760" y="178" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">从 1024 母版导出 PNG</text>
+
+  <rect x="362" y="188" width="566" height="18" rx="3" fill="#0E0C1C"/>
+  <text x="374" y="200" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">iPhone 通知栏 @3x</text>
+  <text x="590" y="200" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FFD060">60 × 60</text>
+  <text x="686" y="200" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">~13 px</text>
+  <text x="760" y="200" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">从 1024 母版导出 PNG</text>
+
+  <rect x="362" y="210" width="566" height="18" rx="3" fill="#12101E"/>
+  <text x="374" y="222" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">Android xxxhdpi 启动图标</text>
+  <text x="590" y="222" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FFD060">192 × 192</text>
+  <text x="686" y="222" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">~41 px</text>
+  <text x="760" y="222" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">从 1024 母版导出 PNG</text>
+
+  <rect x="362" y="232" width="566" height="18" rx="3" fill="#0E0C1C"/>
+  <text x="374" y="244" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">Android xxhdpi / xhdpi</text>
+  <text x="590" y="244" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FFD060">144 / 96</text>
+  <text x="686" y="244" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">~30 / ~20 px</text>
+  <text x="760" y="244" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">从 1024 母版导出 PNG</text>
+
+  <rect x="362" y="254" width="566" height="18" rx="3" fill="#12101E"/>
+  <text x="374" y="266" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">设计规范文档</text>
+  <text x="590" y="266" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FFD060">960 × 640</text>
+  <text x="686" y="266" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">—</text>
+  <text x="760" y="266" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#FF8C00">03_LightBreaker_DesignSpec.svg</text>
+
+  <!-- 圆角说明 -->
+  <rect x="362" y="282" width="566" height="38" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="374" y="298" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">圆角规格</text>
+  <text x="374" y="312" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" fill="#8880AA">viewBox 坐标系 rx="221"（约21.5%边长）。iOS系统自动施加蒙版，无需手动裁切。Android建议Adaptive Icon。</text>
+
+  <!-- ══════════ 设计元素说明 ══════════ -->
+  <line x1="32" y1="336" x2="928" y2="336" stroke="#2C2848" stroke-width="1"/>
+  <text x="48" y="356" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="11" font-weight="700" fill="#FFD060" letter-spacing="1">DESIGN ELEMENTS</text>
+
+  <!-- 8个元素卡片 -->
+  <rect x="48"  y="366" width="130" height="68" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="60"  y="382" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">中心光爆</text>
+  <text x="60"  y="395" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">径向渐变 金→橙→透明</text>
+  <text x="60"  y="407" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">椭圆 r=342px（1024系）</text>
+  <text x="60"  y="419" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">8条三角形放射光芒</text>
+  <text x="60"  y="428" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">opacity 14%–18%</text>
+
+  <rect x="192" y="366" width="130" height="68" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="204" y="382" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">破碎瓷砖</text>
+  <text x="204" y="395" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">12块暗紫矩形飞散</text>
+  <text x="204" y="407" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">旋转 -32°~+42° 随机</text>
+  <text x="204" y="419" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">8条飞散轨迹射线</text>
+  <text x="204" y="428" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">opacity 80%–93%</text>
+
+  <rect x="336" y="366" width="130" height="68" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="348" y="382" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">拳套主体</text>
+  <text x="348" y="395" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">暖金橙径向渐变拳套</text>
+  <text x="348" y="407" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">三个指节细节圆角块</text>
+  <text x="348" y="419" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">高光条+指间分隔线</text>
+  <text x="348" y="428" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">护腕深橙渐变</text>
+
+  <rect x="480" y="366" width="130" height="68" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="492" y="382" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">闪电图案</text>
+  <text x="492" y="395" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">6点双折多边形闪电</text>
+  <text x="492" y="407" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">白→浅黄→金线性渐变</text>
+  <text x="492" y="419" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">内芯高光层 opacity 30%</text>
+  <text x="492" y="428" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">顶端强光+底部反光</text>
+
+  <rect x="624" y="366" width="130" height="68" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="636" y="382" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">闪电外发光</text>
+  <text x="636" y="395" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">椭圆径向渐变光晕</text>
+  <text x="636" y="407" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">rx=60 ry=85 px</text>
+  <text x="636" y="419" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">#FFFF88 → 透明</text>
+  <text x="636" y="428" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">center opacity 75%</text>
+
+  <rect x="768" y="366" width="144" height="68" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="780" y="382" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">冲击波环</text>
+  <text x="780" y="395" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">内环 r=188px #FFD060</text>
+  <text x="780" y="407" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">stroke-width 6.8 opacity 36%</text>
+  <text x="780" y="419" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">外环 r=239px #FF8C00</text>
+  <text x="780" y="428" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">stroke-width 4.3 opacity 20%</text>
+
+  <rect x="48"  y="448" width="130" height="56" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="60"  y="464" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">背景星点</text>
+  <text x="60"  y="477" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">9颗随机圆点</text>
+  <text x="60"  y="489" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">r 3.4–7.7px</text>
+  <text x="60"  y="498" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">opacity 28%–50%</text>
+
+  <rect x="192" y="448" width="130" height="56" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="204" y="464" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">文字规格</text>
+  <text x="204" y="477" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">SF Pro Display Bold</text>
+  <text x="204" y="489" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">主：size 111 spacing 10.2</text>
+  <text x="204" y="498" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">副：size 68  spacing 6.8</text>
+
+  <rect x="336" y="448" width="130" height="56" rx="6" fill="#1C1830" stroke="#2C2848" stroke-width=".8"/>
+  <text x="348" y="464" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" fill="#FFD060">闪电坐标（1024）</text>
+  <text x="348" y="477" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">顶:537,359 折L:477,452</text>
+  <text x="348" y="489" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">折M:520,452 底:494,572</text>
+  <text x="348" y="498" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="8.5" fill="#8880AA">右翼:580,469 折R:537,469</text>
+
+  <!-- 底部信息 -->
+  <line x1="32" y1="524" x2="928" y2="524" stroke="#2C2848" stroke-width=".8"/>
+  <text x="480" y="544" text-anchor="middle"
+        font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="9" fill="#8880AA">光影破壁者 Light-Breaker  ·  暗夜破光版 · 拳套+闪电 · Design Spec v1.0 · 2026 · BoxingFitness Design Team</text>
+  <text x="480" y="560" text-anchor="middle"
+        font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="8.5" fill="#4A4060">交付文件：01_LightBreaker_NightGold_1024.svg  ·  02_LightBreaker_NightGold_180x180.svg  ·  03_LightBreaker_DesignSpec.svg</text>
+
+</svg>

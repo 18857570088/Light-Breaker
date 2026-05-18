@@ -3,18 +3,26 @@ package com.zclei.lightbreaker
 import android.Manifest
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -49,6 +57,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
@@ -63,6 +72,9 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var root: LinearLayout
     private lateinit var content: FrameLayout
+    private var headerBleStatusView: BluetoothStatusIndicatorView? = null
+    private var headerBleLeftBatteryView: BatteryStatusIndicatorView? = null
+    private var headerBleRightBatteryView: BatteryStatusIndicatorView? = null
 
     private var currentMural: GeneratedMural? = null
     private var currentSnapshot: GameSnapshot? = null
@@ -71,6 +83,7 @@ class MainActivity : ComponentActivity() {
     private var trainingActive = false
     private var trainingStartedAtMs = 0L
     private var simulationCount = 0
+    private var currentTheme = "自然风光"
 
     private var multiplayerSession: MultiplayerRoomSession? = null
     private var multiplayerState: MultiplayerRoomState? = null
@@ -84,9 +97,18 @@ class MainActivity : ComponentActivity() {
     private val debugLines = ArrayDeque<String>()
 
     private var homeProgressText: TextView? = null
-    private var homeDeviceText: TextView? = null
+    private var homeSettingsText: TextView? = null
+    private var homeBleStatusRow: LinearLayout? = null
     private var homeMuralText: TextView? = null
-    private var homeDeviceList: LinearLayout? = null
+    private var settingsSummaryText: TextView? = null
+    private var settingsBleStatusText: TextView? = null
+    private var settingsBleConnectionRow: LinearLayout? = null
+    private var settingsSelectedDeviceText: TextView? = null
+    private var settingsDeviceRadioGroup: RadioGroup? = null
+    private var settingsSelectedDeviceAddress: String? = null
+    private var settingsConnectButton: Button? = null
+    private var settingsDisconnectButton: Button? = null
+    private var settingsDeviceList: LinearLayout? = null
     private var debugStatusText: TextView? = null
     private var debugDeviceList: LinearLayout? = null
     private var debugLogText: TextView? = null
@@ -116,7 +138,7 @@ class MainActivity : ComponentActivity() {
         root =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setBackgroundColor(Color.parseColor("#070A18"))
+                setBackgroundColor(Color.parseColor(NIGHT_BG))
                 layoutParams = LinearLayout.LayoutParams(match, match)
             }
         root.addView(buildTopBar())
@@ -129,13 +151,29 @@ class MainActivity : ComponentActivity() {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(14), dp(16), dp(10))
-            background = solid("#0D1528")
+            background = rounded(NIGHT_PANEL, GOLD_LINE, 0)
             addView(
-                TextView(context).apply {
-                    text = ServerConfig.APP_NAME
-                    setTextColor(Color.WHITE)
-                    setTypeface(Typeface.DEFAULT_BOLD)
-                    textSize = 22f
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(
+                        ImageView(context).apply {
+                            setImageResource(R.mipmap.ic_launcher)
+                            contentDescription = "LightBreaker"
+                        },
+                        LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(10) },
+                    )
+                    addView(
+                        TextView(context).apply {
+                            text = ServerConfig.APP_NAME
+                            setTextColor(Color.parseColor(GOLD))
+                            setTypeface(Typeface.DEFAULT_BOLD)
+                            textSize = 22f
+                        },
+                        LinearLayout.LayoutParams(0, wrap, 1f),
+                    )
+                    addView(buildHeaderBlePanel())
+                    addView(iconButton("⚙") { showSettings() })
                 },
             )
             addView(
@@ -144,10 +182,48 @@ class MainActivity : ComponentActivity() {
                     setPadding(0, dp(10), 0, 0)
                     addView(tabButton("首页") { showHome() })
                     addView(tabButton("多人") { showMultiplayer() })
-                    addView(tabButton("蓝牙") { showDebug() })
                     addView(tabButton("画廊") { showGallery() })
                 },
             )
+        }
+
+    private fun buildHeaderBlePanel(): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(6), dp(4), dp(8), dp(4))
+            headerBleStatusView =
+                BluetoothStatusIndicatorView(this@MainActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
+                    contentDescription = "蓝牙未连接"
+                    setConnected(false)
+                }
+            headerBleLeftBatteryView =
+                BatteryStatusIndicatorView(this@MainActivity, "左").apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(52), dp(30)).apply { leftMargin = dp(5) }
+                    setBattery(null)
+                }
+            headerBleRightBatteryView =
+                BatteryStatusIndicatorView(this@MainActivity, "右").apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(52), dp(30)).apply { leftMargin = dp(4) }
+                    setBattery(null)
+                }
+            addView(headerBleStatusView)
+            addView(headerBleLeftBatteryView)
+            addView(headerBleRightBatteryView)
+        }
+
+    private fun iconButton(
+        text: String,
+        action: () -> Unit,
+    ): Button =
+        Button(this).apply {
+            this.text = text
+            textSize = 20f
+            setTextColor(Color.parseColor(GOLD))
+            background = rounded("#1C1830", GOLD_LINE, 14)
+            setOnClickListener { action() }
+            layoutParams = LinearLayout.LayoutParams(dp(46), dp(42))
         }
 
     private fun tabButton(
@@ -157,8 +233,8 @@ class MainActivity : ComponentActivity() {
         Button(this).apply {
             this.text = text
             textSize = 12f
-            setTextColor(Color.WHITE)
-            background = rounded("#17233A", "#2C3E60", 14)
+            setTextColor(Color.parseColor(GOLD))
+            background = rounded("#1C1830", GOLD_LINE, 14)
             setOnClickListener { action() }
             layoutParams = LinearLayout.LayoutParams(0, dp(42), 1f).apply { marginEnd = dp(6) }
         }
@@ -168,35 +244,35 @@ class MainActivity : ComponentActivity() {
         playMode = PlayMode.Single
         content.removeAllViews()
         val promptInput = input("输入想击碎的压力或画作关键词", minLines = 2)
-        val themeInput = input("图片类型：自然风光、名画再现、城市建筑、抽象艺术、萌宠、科幻")
         content.addView(
             scroll {
                 addView(sectionTitle("训练入口"))
                 homeProgressText = infoCard("").also { addView(it) }
-                homeDeviceText = infoCard("").also { addView(it) }
+                homeSettingsText = infoCard("").also { addView(it) }
+                addView(sectionTitle("手套状态"))
+                homeBleStatusRow =
+                    LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                addView(homeBleStatusRow, LinearLayout.LayoutParams(match, wrap).withBottom(dp(8)))
                 homeMuralText = infoCard("").also { addView(it) }
-                addView(label("云端图片类型"))
                 addView(promptInput, LinearLayout.LayoutParams(match, wrap).withBottom(dp(8)))
-                addView(themeInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(10)))
-                addCategoryButtons(themeInput)
-                addDifficultyButtons()
                 addView(row(
-                    actionButton("生成画作", "#2563EB") {
-                        lifecycleScope.launch { generateMural(promptInput.text.toString(), themeInput.text.toString()) }
+                    actionButton("生成画作", GOLD) {
+                        lifecycleScope.launch { generateMural(promptInput.text.toString(), currentTheme) }
                     },
-                    actionButton("开始训练", "#16A34A") { startSingleTraining() },
+                    actionButton("开始训练", ORANGE) { startSingleTraining() },
                 ))
                 addView(row(
-                    actionButton("扫描手套", "#0F766E") { bleManager.startScan() },
-                    actionButton("停止扫描", "#475569") { bleManager.stopScan() },
+                    actionButton("设置", "#475569") { showSettings() },
+                    actionButton("刷新画作", "#A04800") {
+                        lifecycleScope.launch { generateMural(promptInput.text.toString(), currentTheme) }
+                    },
                 ))
-                addView(sectionTitle("发现的手套"))
-                homeDeviceList = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
-                addView(homeDeviceList)
             },
         )
         refreshHome()
-        renderDeviceList(homeDeviceList)
     }
 
     private fun showMultiplayer() {
@@ -205,7 +281,6 @@ class MainActivity : ComponentActivity() {
         content.removeAllViews()
         val nicknameInput = input("昵称").apply { setText("玩家") }
         val roomCodeInput = input("输入 6 位房间码")
-        val categoryInput = input("图片类型").apply { setText("自然风光") }
         content.addView(
             scroll {
                 addView(sectionTitle("多人房间"))
@@ -214,19 +289,17 @@ class MainActivity : ComponentActivity() {
                 addView(nicknameInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(8)))
                 addView(label("房间码"))
                 addView(roomCodeInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(8)))
-                addView(label("图片类型与难度"))
-                addCategoryButtons(categoryInput)
-                addDifficultyButtons()
+                addView(infoCard("当前设置：$currentTheme · ${currentDifficulty.title}\n点击右上角齿轮可修改图片类型、难度和蓝牙连接。"))
                 addView(row(
-                    actionButton("创建房间", "#2563EB") {
-                        lifecycleScope.launch { createMultiplayerRoom(nicknameInput.text.toString(), categoryInput.text.toString()) }
+                    actionButton("创建房间", GOLD) {
+                        lifecycleScope.launch { createMultiplayerRoom(nicknameInput.text.toString(), currentTheme) }
                     },
-                    actionButton("加入房间", "#0F766E") {
+                    actionButton("加入房间", "#A04800") {
                         lifecycleScope.launch { joinMultiplayerRoom(roomCodeInput.text.toString(), nicknameInput.text.toString()) }
                     },
                 ))
                 addView(row(
-                    actionButton("开始协作", "#16A34A") { lifecycleScope.launch { startMultiplayerRoom() } },
+                    actionButton("开始协作", ORANGE) { lifecycleScope.launch { startMultiplayerRoom() } },
                     actionButton("离开房间", "#475569") { leaveMultiplayerRoom() },
                 ))
                 multiplayerLogText = infoCard("").also { addView(it) }
@@ -244,7 +317,7 @@ class MainActivity : ComponentActivity() {
                 addView(infoCard("服务器 ${ServerConfig.MULTIPLAYER_API_BASE_URL}\n数据库 ${ServerConfig.DATABASE_NAME}"))
                 debugStatusText = infoCard("").also { addView(it) }
                 addView(row(
-                    actionButton("扫描", "#2563EB") { bleManager.startScan() },
+                    actionButton("扫描", GOLD) { bleManager.startScan() },
                     actionButton("断开全部", "#B45309") { bleManager.disconnectAll() },
                 ))
                 addView(sectionTitle("设备列表"))
@@ -256,6 +329,63 @@ class MainActivity : ComponentActivity() {
         )
         refreshDebug()
         renderDeviceList(debugDeviceList)
+    }
+
+    private fun showSettings() {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        content.removeAllViews()
+        settingsDeviceList = null
+        val themeInput = input("图片类型").apply { setText(currentTheme) }
+        content.addView(
+            scroll {
+                addView(sectionTitle("设置"))
+                settingsSummaryText = infoCard("").also { addView(it) }
+                addView(label("图片类型"))
+                addView(themeInput, LinearLayout.LayoutParams(match, dp(48)).withBottom(dp(10)))
+                addCategoryButtons(themeInput) {
+                    currentTheme = themeInput.text.toString()
+                    refreshSettings()
+                    refreshHome()
+                }
+                addView(label("训练难度"))
+                addDifficultyButtons {
+                    refreshSettings()
+                    refreshHome()
+                }
+                addView(sectionTitle("蓝牙设备"))
+                settingsBleStatusText = infoCard("").also { addView(it) }
+                settingsSelectedDeviceText = infoCard("").also { addView(it) }
+                settingsBleConnectionRow =
+                    LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                addView(settingsBleConnectionRow, LinearLayout.LayoutParams(match, wrap).withBottom(dp(8)))
+                settingsDeviceRadioGroup =
+                    RadioGroup(this@MainActivity).apply {
+                        orientation = RadioGroup.VERTICAL
+                        setPadding(0, 0, 0, dp(6))
+                    }
+                addView(settingsDeviceRadioGroup)
+                addView(row(
+                    actionButton("扫描", "#174154") { bleManager.startScan() },
+                    actionButton("连接", "#E07010") {
+                        val selected = selectedSettingsDevice()
+                        if (selected == null) {
+                            toast("请先扫描并选择 BOXING 手套")
+                        } else {
+                            bleManager.connect(selected)
+                        }
+                    }.also { settingsConnectButton = it },
+                    actionButton("断开", "#A73A54") { bleManager.disconnectAll() }.also { settingsDisconnectButton = it },
+                ))
+                addView(sectionTitle("蓝牙调试信息"))
+                debugLogText = infoCard("").also { addView(it) }
+            },
+        )
+        refreshSettings()
+        refreshDebug()
+        renderSettingsBleDeviceSelection()
     }
 
     private fun showGallery() {
@@ -351,7 +481,7 @@ class MainActivity : ComponentActivity() {
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(dp(12), dp(8), dp(12), dp(10))
-                setBackgroundColor(Color.parseColor("#070A18"))
+                setBackgroundColor(Color.parseColor(NIGHT_BG))
             }
         gameStatsText = infoCard(title)
         screen.addView(gameStatsText)
@@ -362,9 +492,9 @@ class MainActivity : ComponentActivity() {
             }
         screen.addView(gameView, LinearLayout.LayoutParams(match, 0, 1f))
         screen.addView(row(
-            actionButton("模拟左拳", "#2563EB") { simulateHit(GloveHand.Left) },
+            actionButton("模拟左拳", GOLD) { simulateHit(GloveHand.Left) },
             actionButton("模拟右拳", "#EA580C") { simulateHit(GloveHand.Right) },
-            actionButton("结算", "#16A34A") { finishTraining(manual = true) },
+            actionButton("结算", ORANGE) { finishTraining(manual = true) },
         ))
         content.addView(screen)
         refreshGameStats()
@@ -490,11 +620,11 @@ class MainActivity : ComponentActivity() {
                     ),
                 )
                 addView(row(
-                    actionButton("再来一幅", "#2563EB") {
+                    actionButton("再来一幅", GOLD) {
                         lifecycleScope.launch { generateMural("新的破壁挑战", "自然风光") }
                         showHome()
                     },
-                    actionButton("查看画廊", "#16A34A") { showGallery() },
+                    actionButton("查看画廊", ORANGE) { showGallery() },
                 ))
             },
         )
@@ -522,15 +652,23 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             bleManager.devices.collect {
                 latestDevices = it
-                renderDeviceList(homeDeviceList)
+                renderDeviceList(settingsDeviceList)
                 renderDeviceList(debugDeviceList)
+                renderSettingsBleDeviceSelection()
+                renderHomeBleStatus()
+                renderSettingsBleConnections()
             }
         }
         lifecycleScope.launch {
             bleManager.states.collect {
                 latestStates = it
                 refreshHome()
+                refreshSettings()
                 refreshDebug()
+                refreshHeaderBleStatus()
+                renderSettingsBleDeviceSelection()
+                renderHomeBleStatus()
+                renderSettingsBleConnections()
                 val left = it[GloveHand.Left]?.deviceName
                 val right = it[GloveHand.Right]?.deviceName
                 if (left != null || right != null) repository.rememberDevice(left, right)
@@ -540,7 +678,11 @@ class MainActivity : ComponentActivity() {
             bleManager.packets.collect { packet ->
                 debugLines.addFirst("${time()} ${packet.hand.displayName} ${packet.rawHex} · ${packet.batteryText}")
                 while (debugLines.size > 24) debugLines.removeLast()
+                refreshSettings()
                 refreshDebug()
+                refreshHeaderBleStatus()
+                renderHomeBleStatus()
+                renderSettingsBleConnections()
             }
         }
         lifecycleScope.launch {
@@ -576,11 +718,23 @@ class MainActivity : ComponentActivity() {
 
     private fun refreshHome() {
         homeProgressText?.text = "等级 Lv.${progressStats.level} · XP ${progressStats.xp}\n最近设备：左 ${progressStats.lastLeftDevice ?: "--"} · 右 ${progressStats.lastRightDevice ?: "--"}"
-        homeDeviceText?.text = buildDeviceStatusText()
+        homeSettingsText?.text = "当前设置：$currentTheme · ${currentDifficulty.title} · ${currentDifficulty.columns * currentDifficulty.rows} 块\n点击右上角齿轮可切换图片类型、训练难度和蓝牙手套。"
+        refreshHeaderBleStatus()
+        renderHomeBleStatus()
         homeMuralText?.text =
             currentMural?.let {
                 "当前画作：${it.title}\n类型：${it.theme} · ${it.categoryId}\n难度：${currentDifficulty.title} · ${currentDifficulty.columns * currentDifficulty.rows} 块\n图片：${it.imageUrl ?: "程序绘制底图"}\n提示词：${it.prompt}"
             } ?: "当前画作：尚未生成"
+    }
+
+    private fun refreshSettings() {
+        settingsSummaryText?.text = "图片类型：$currentTheme\n难度：${currentDifficulty.title} · ${currentDifficulty.columns * currentDifficulty.rows} 块"
+        settingsBleStatusText?.text = buildBluetoothSettingsStatus()
+        settingsSelectedDeviceText?.text = buildSelectedDeviceText()
+        updateSettingsBleButtons()
+        renderSettingsBleDeviceSelection()
+        renderSettingsBleConnections()
+        debugLogText?.text = debugLines.joinToString("\n").ifBlank { "暂无通知包。连接手套并开启陀螺仪后，这里会显示 D5 5D 03 数据包。" }
     }
 
     private fun refreshMultiplayer() {
@@ -634,19 +788,221 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun buildBluetoothSettingsStatus(): String {
+        val connectedCount =
+            listOf(GloveHand.Left, GloveHand.Right).count { hand ->
+                latestStates[hand]?.phase in listOf(ConnectionPhase.Connected, ConnectionPhase.Ready)
+            }
+        val foundText = if (latestDevices.isEmpty()) "未发现设备" else "已发现 ${latestDevices.size} 个设备"
+        return when {
+            connectedCount > 0 -> "蓝牙已连接 · $connectedCount/2 只手套在线 · $foundText"
+            latestDevices.isNotEmpty() -> "请选择设备后点击连接 · $foundText"
+            else -> "蓝牙未连接 · 点击扫描查找 BOXING 手套"
+        }
+    }
+
+    private fun buildSelectedDeviceText(): String {
+        val connected = connectedStates()
+        if (connected.isNotEmpty()) {
+            return "已连接 ${connected.size} 个设备：\n" +
+                connected.joinToString("\n") { formatConnectedState(it) }
+        }
+        val selected = selectedSettingsDevice()
+        return if (selected == null) {
+            "未选择设备\n设备名规则：BOXING#L + 6 位字母/数字，BOXING#R + 6 位字母/数字。"
+        } else {
+            "已选择：${formatGloveDevice(selected, showAddress = false)}"
+        }
+    }
+
+    private fun renderSettingsBleDeviceSelection() {
+        val group = settingsDeviceRadioGroup ?: return
+        group.removeAllViews()
+        val devices = visibleSettingsDevices()
+        if (settingsSelectedDeviceAddress == null && devices.isNotEmpty()) {
+            settingsSelectedDeviceAddress = devices.first().address
+        } else if (settingsSelectedDeviceAddress != null && devices.none { it.address == settingsSelectedDeviceAddress }) {
+            settingsSelectedDeviceAddress = devices.firstOrNull()?.address
+        }
+        if (devices.isEmpty()) {
+            group.addView(
+                TextView(this).apply {
+                    text = "未发现 BOXING 设备"
+                    setTextColor(Color.parseColor("#D6E9F8"))
+                    textSize = 13f
+                    setPadding(0, dp(4), 0, dp(8))
+                },
+            )
+        } else {
+            val connectedNames = connectedStates().mapNotNull { it.deviceName }.toSet()
+            devices.forEach { device ->
+                val row =
+                    RadioButton(this).apply {
+                        text = formatGloveDevice(device, showAddress = true)
+                        setTextColor(Color.parseColor("#D6E9F8"))
+                        textSize = 13f
+                        buttonTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FFD060"))
+                        isChecked = device.address == settingsSelectedDeviceAddress || connectedNames.contains(device.name)
+                        setPadding(0, dp(4), 0, dp(4))
+                        setOnClickListener {
+                            settingsSelectedDeviceAddress = device.address
+                            renderSettingsBleDeviceSelection()
+                            refreshSettings()
+                        }
+                    }
+                group.addView(row)
+            }
+        }
+        settingsSelectedDeviceText?.text = buildSelectedDeviceText()
+        updateSettingsBleButtons()
+    }
+
+    private fun updateSettingsBleButtons() {
+        val connected = connectedStates().isNotEmpty()
+        val selected = selectedSettingsDevice()
+        val selectedPhase = selected?.let { latestStates[it.hand]?.phase }
+        val selectedOnline = selectedPhase in listOf(ConnectionPhase.Connecting, ConnectionPhase.Connected, ConnectionPhase.Ready)
+        settingsConnectButton?.let {
+            it.isEnabled = selected != null && !selectedOnline
+            it.alpha = if (it.isEnabled) 1f else 0.45f
+        }
+        settingsDisconnectButton?.let {
+            it.isEnabled = connected
+            it.alpha = if (connected) 1f else 0.45f
+        }
+    }
+
+    private fun selectedSettingsDevice(): GloveDevice? =
+        latestDevices.firstOrNull { it.address == settingsSelectedDeviceAddress }
+
+    private fun visibleSettingsDevices(): List<GloveDevice> =
+        latestDevices.sortedWith(compareBy<GloveDevice>({ it.name.takeLast(6) }, { it.hand.ordinal }, { it.name }, { it.address }))
+
+    private fun connectedStates(): List<GloveConnectionState> =
+        listOf(GloveHand.Right, GloveHand.Left).mapNotNull { hand ->
+            latestStates[hand]?.takeIf { it.phase in listOf(ConnectionPhase.Connected, ConnectionPhase.Ready) }
+        }
+
+    private fun formatConnectedState(state: GloveConnectionState): String =
+        "${state.hand.displayName}  ${state.deviceName ?: "--"}  电量 ${state.batteryText}  力度 ${state.gyroPower}"
+
+    private fun formatGloveDevice(
+        device: GloveDevice,
+        showAddress: Boolean,
+    ): String {
+        val pairId = device.name.takeLast(6)
+        val base = "编号 $pairId  ${device.hand.displayName}  ${device.name}  RSSI ${device.rssi} dBm"
+        return if (showAddress) "$base\n${device.address}" else base
+    }
+
+    private fun refreshHeaderBleStatus() {
+        val connected = connectedStates().isNotEmpty()
+        headerBleStatusView?.setConnected(connected)
+        headerBleStatusView?.contentDescription = if (connected) "蓝牙已连接" else "蓝牙未连接"
+        headerBleLeftBatteryView?.setBattery(
+            latestStates[GloveHand.Left]
+                ?.takeIf { it.phase in listOf(ConnectionPhase.Connected, ConnectionPhase.Ready) }
+                ?.batteryText
+                ?.toBatteryPercent(),
+        )
+        headerBleRightBatteryView?.setBattery(
+            latestStates[GloveHand.Right]
+                ?.takeIf { it.phase in listOf(ConnectionPhase.Connected, ConnectionPhase.Ready) }
+                ?.batteryText
+                ?.toBatteryPercent(),
+        )
+    }
+
+    private fun renderHomeBleStatus() {
+        val container = homeBleStatusRow ?: return
+        container.removeAllViews()
+        listOf(GloveHand.Left, GloveHand.Right).forEachIndexed { index, hand ->
+            val state = latestStates[hand] ?: GloveConnectionState(hand)
+            container.addView(
+                gloveStatusCard(state, compact = true),
+                LinearLayout.LayoutParams(0, wrap, 1f).apply {
+                    if (index == 0) marginEnd = dp(8)
+                },
+            )
+        }
+    }
+
+    private fun renderSettingsBleConnections() {
+        val container = settingsBleConnectionRow ?: return
+        container.removeAllViews()
+        listOf(GloveHand.Left, GloveHand.Right).forEachIndexed { index, hand ->
+            val state = latestStates[hand] ?: GloveConnectionState(hand)
+            container.addView(
+                gloveStatusCard(state, compact = false),
+                LinearLayout.LayoutParams(0, wrap, 1f).apply {
+                    if (index == 0) marginEnd = dp(8)
+                },
+            )
+        }
+    }
+
+    private fun gloveStatusCard(
+        state: GloveConnectionState,
+        compact: Boolean,
+    ): TextView {
+        val online = state.phase == ConnectionPhase.Connected || state.phase == ConnectionPhase.Ready
+        val scanning = state.phase == ConnectionPhase.Scanning || state.phase == ConnectionPhase.Connecting
+        val fill =
+            when {
+                online -> "#342858"
+                scanning -> "#1C1830"
+                state.phase == ConnectionPhase.Error -> "#3B1111"
+                else -> NIGHT_CARD
+            }
+        val stroke =
+            when {
+                online -> GOLD
+                scanning -> ORANGE
+                state.phase == ConnectionPhase.Error -> "#FB7185"
+                else -> GOLD_LINE
+            }
+        val title = "${state.hand.displayName}手套"
+        val device = state.deviceName ?: "未选择设备"
+        val cardText =
+            if (compact) {
+                "$title  ${state.phase.label()}\n电量 ${state.batteryText} · 力度 ${state.gyroPower}"
+            } else {
+                "$title  ${state.phase.label()}\n$device\n电量 ${state.batteryText} · 次数 ${state.gyroCount} · 力度 ${state.gyroPower}"
+            }
+        return TextView(this).apply {
+            text = cardText
+            setTextColor(Color.WHITE)
+            textSize = if (compact) 13f else 12f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = rounded(fill, stroke, 16)
+            includeFontPadding = true
+        }
+    }
+
     private fun renderDeviceList(container: LinearLayout?) {
         container ?: return
         container.removeAllViews()
         if (latestDevices.isEmpty()) {
-            container.addView(infoCard("未发现手套。请确认设备名为 BOXING#PL... 或 BOXING#PR...，并点击扫描。"))
+            container.addView(infoCard("未发现手套。点击“扫描手套”后，请确认设备名为 BOXING#L 加 6 位字母/数字，或 BOXING#R 加 6 位字母/数字。"))
             return
         }
         latestDevices.forEach { device ->
+            val state = latestStates[device.hand]
+            val selected =
+                state?.deviceName == device.name &&
+                    state.phase in listOf(ConnectionPhase.Connecting, ConnectionPhase.Connected, ConnectionPhase.Ready)
+            val label =
+                if (selected) {
+                    "已选择 ${device.hand.displayName} · ${device.name}\nRSSI ${device.rssi} · ${state?.phase?.label() ?: "--"} · 点按可重连"
+                } else {
+                    "连接${device.hand.displayName} · ${device.name}\nRSSI ${device.rssi} · ${device.address}"
+                }
             container.addView(
-                actionButton("${device.hand.displayName} · ${device.name} · RSSI ${device.rssi}", "#1E3A8A") {
+                actionButton(label, if (selected) "#6A2800" else "#342858") {
                     bleManager.connect(device)
                 },
-                LinearLayout.LayoutParams(match, dp(50)).withBottom(dp(8)),
+                LinearLayout.LayoutParams(match, dp(64)).withBottom(dp(8)),
             )
         }
     }
@@ -671,34 +1027,58 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun LinearLayout.addCategoryButtons(input: EditText) {
+    private fun LinearLayout.addCategoryButtons(
+        input: EditText,
+        onChanged: () -> Unit = {},
+    ) {
         addView(row(
-            actionButton("自然风光", "#2563EB") { input.setText("自然风光") },
-            actionButton("名画再现", "#7C3AED") { input.setText("名画再现") },
+            actionButton("自然风光", GOLD) {
+                input.setText("自然风光")
+                onChanged()
+            },
+            actionButton("名画再现", "#7C3AED") {
+                input.setText("名画再现")
+                onChanged()
+            },
         ))
         addView(row(
-            actionButton("城市建筑", "#0F766E") { input.setText("城市建筑") },
-            actionButton("抽象艺术", "#EA580C") { input.setText("抽象艺术") },
+            actionButton("城市建筑", "#A04800") {
+                input.setText("城市建筑")
+                onChanged()
+            },
+            actionButton("抽象艺术", "#EA580C") {
+                input.setText("抽象艺术")
+                onChanged()
+            },
         ))
         addView(row(
-            actionButton("萌宠", "#DB2777") { input.setText("萌宠") },
-            actionButton("科幻", "#0891B2") { input.setText("科幻") },
+            actionButton("萌宠", "#DB2777") {
+                input.setText("萌宠")
+                onChanged()
+            },
+            actionButton("科幻", "#0891B2") {
+                input.setText("科幻")
+                onChanged()
+            },
         ))
     }
 
-    private fun LinearLayout.addDifficultyButtons() {
+    private fun LinearLayout.addDifficultyButtons(onChanged: () -> Unit = {}) {
         addView(row(
-            actionButton("简单 150", "#0F766E") {
+            actionButton("简单 150", "#A04800") {
                 currentDifficulty = GameDifficulty.Easy
                 refreshHome()
+                onChanged()
             },
-            actionButton("标准 300", "#2563EB") {
+            actionButton("标准 300", GOLD) {
                 currentDifficulty = GameDifficulty.Standard
                 refreshHome()
+                onChanged()
             },
             actionButton("挑战 500", "#B45309") {
                 currentDifficulty = GameDifficulty.Challenge
                 refreshHome()
+                onChanged()
             },
         ))
     }
@@ -709,11 +1089,11 @@ class MainActivity : ComponentActivity() {
     ): EditText =
         EditText(this).apply {
             hint = hintText
-            setHintTextColor(Color.parseColor("#687899"))
+            setHintTextColor(Color.parseColor(MUTED_TEXT))
             setTextColor(Color.WHITE)
             setSingleLine(minLines == 1)
             this.minLines = minLines
-            background = rounded("#101A2E", "#263B5F", 14)
+            background = rounded(NIGHT_CARD, GOLD_LINE, 14)
             setPadding(dp(12), dp(8), dp(12), dp(8))
         }
 
@@ -746,7 +1126,7 @@ class MainActivity : ComponentActivity() {
             this.text = text
             textSize = 18f
             setTypeface(Typeface.DEFAULT_BOLD)
-            setTextColor(Color.WHITE)
+            setTextColor(Color.parseColor(GOLD))
             setPadding(0, dp(12), 0, dp(8))
         }
 
@@ -754,7 +1134,7 @@ class MainActivity : ComponentActivity() {
         TextView(this).apply {
             this.text = text
             textSize = 13f
-            setTextColor(Color.parseColor("#9FB2D0"))
+            setTextColor(Color.parseColor(MUTED_TEXT))
             setPadding(0, dp(10), 0, dp(6))
         }
 
@@ -762,9 +1142,9 @@ class MainActivity : ComponentActivity() {
         TextView(this).apply {
             this.text = text
             textSize = 14f
-            setTextColor(Color.parseColor("#E5EEF8"))
+            setTextColor(Color.parseColor("#FFF8C0"))
             setLineSpacing(2f, 1.05f)
-            background = rounded("#101A2E", "#24385A", 14)
+            background = rounded(NIGHT_CARD, GOLD_LINE, 14)
             setPadding(dp(12), dp(10), dp(12), dp(10))
             layoutParams = LinearLayout.LayoutParams(match, wrap).withBottom(dp(10))
         }
@@ -777,7 +1157,7 @@ class MainActivity : ComponentActivity() {
         Button(this).apply {
             this.text = text
             textSize = 13f
-            setTextColor(Color.WHITE)
+            setTextColor(Color.parseColor(if (color.uppercase(Locale.US) in setOf(GOLD, "#FFD060", "#FFE080", "#FFCC00")) NIGHT_BG else "#FFFFFF"))
             setAllCaps(false)
             background = rounded(color, lighten(color), 14)
             setOnClickListener { action() }
@@ -809,16 +1189,21 @@ class MainActivity : ComponentActivity() {
 
     private fun lighten(color: String): String =
         when (color.uppercase(Locale.US)) {
-            "#2563EB" -> "#60A5FA"
+            GOLD -> "#FFE080"
             "#7C3AED" -> "#A78BFA"
-            "#16A34A" -> "#4ADE80"
-            "#0F766E" -> "#2DD4BF"
+            ORANGE -> "#FFC840"
+            "#A04800" -> "#E08800"
             "#B45309" -> "#F59E0B"
             "#EA580C" -> "#FB923C"
             "#DB2777" -> "#F472B6"
             "#0891B2" -> "#22D3EE"
             "#475569" -> "#64748B"
-            else -> "#3B82F6"
+            "#342858" -> "#FFD060"
+            "#6A2800" -> "#FF8C00"
+            "#174154" -> "#2E7491"
+            "#E07010" -> "#F6A03D"
+            "#A73A54" -> "#E35F78"
+            else -> ORANGE
         }
 
     private fun ConnectionPhase.label(): String =
@@ -869,5 +1254,136 @@ class MainActivity : ComponentActivity() {
         const val REQUEST_PERMISSIONS = 1102
         const val match = ViewGroup.LayoutParams.MATCH_PARENT
         const val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
+        const val NIGHT_BG = "#0A0810"
+        const val NIGHT_PANEL = "#12101E"
+        const val NIGHT_CARD = "#1C1830"
+        const val GOLD = "#FFD060"
+        const val ORANGE = "#FF8C00"
+        const val GOLD_LINE = "#2C2848"
+        const val MUTED_TEXT = "#8880AA"
+    }
+}
+
+private fun String.toBatteryPercent(): Int? =
+    when {
+        this == "已充满" -> 100
+        endsWith("%") -> removeSuffix("%").toIntOrNull()?.coerceIn(0, 100)
+        else -> null
+    }
+
+private class BluetoothStatusIndicatorView(
+    context: android.content.Context,
+) : View(context) {
+    private var connected: Boolean = false
+    private val paint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+    private val path = Path()
+
+    fun setConnected(value: Boolean) {
+        if (connected == value) return
+        connected = value
+        invalidate()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val size = minOf(width, height).toFloat()
+        val cx = width / 2f
+        val top = (height - size) / 2f + size * 0.17f
+        val bottom = (height + size) / 2f - size * 0.17f
+        val mid = height / 2f
+        val left = cx - size * 0.22f
+        val right = cx + size * 0.21f
+        paint.color = if (connected) Color.parseColor("#FFD060") else Color.parseColor("#FF4B55")
+        paint.strokeWidth = max(2f, size * 0.08f)
+        path.reset()
+        path.moveTo(cx, top)
+        path.lineTo(cx, bottom)
+        path.moveTo(cx, top)
+        path.lineTo(right, mid - size * 0.12f)
+        path.lineTo(left, mid)
+        path.lineTo(right, mid + size * 0.12f)
+        path.lineTo(cx, bottom)
+        canvas.drawPath(path, paint)
+    }
+}
+
+private class BatteryStatusIndicatorView(
+    context: android.content.Context,
+    private var handLabel: String,
+) : View(context) {
+    private var percent: Int? = null
+    private val strokePaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 2.2f
+        }
+    private val fillPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
+    private val textPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
+    private val bodyRect = RectF()
+    private val fillRect = RectF()
+    private val terminalRect = RectF()
+
+    fun setBattery(value: Int?) {
+        percent = value?.coerceIn(0, 100)
+        contentDescription = "$handLabel ${percent?.let { "$it%" } ?: "--"}"
+        invalidate()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val bodyLeft = width * 0.05f
+        val bodyTop = height * 0.18f
+        val bodyRight = width * 0.88f
+        val bodyBottom = height * 0.82f
+        bodyRect.set(bodyLeft, bodyTop, bodyRight, bodyBottom)
+        terminalRect.set(bodyRight + width * 0.015f, height * 0.36f, width * 0.98f, height * 0.64f)
+
+        val level = percent
+        val outlineColor =
+            when {
+                level == null -> Color.parseColor("#8A97A3")
+                level <= 20 -> Color.parseColor("#FF4B55")
+                level <= 45 -> Color.parseColor("#FFD060")
+                else -> Color.parseColor("#FFD060")
+            }
+        strokePaint.color = outlineColor
+        fillPaint.color = Color.argb(44, Color.red(outlineColor), Color.green(outlineColor), Color.blue(outlineColor))
+        canvas.drawRoundRect(bodyRect, height * 0.11f, height * 0.11f, fillPaint)
+        canvas.drawRoundRect(bodyRect, height * 0.11f, height * 0.11f, strokePaint)
+        fillPaint.color = outlineColor
+        canvas.drawRoundRect(terminalRect, height * 0.04f, height * 0.04f, fillPaint)
+
+        if (level != null) {
+            val innerPadding = height * 0.14f
+            val fillWidth = (bodyRect.width() - innerPadding * 2f) * (level / 100f)
+            fillRect.set(
+                bodyRect.left + innerPadding,
+                bodyRect.top + innerPadding,
+                bodyRect.left + innerPadding + fillWidth,
+                bodyRect.bottom - innerPadding,
+            )
+            fillPaint.color = Color.argb(92, Color.red(outlineColor), Color.green(outlineColor), Color.blue(outlineColor))
+            canvas.drawRoundRect(fillRect, height * 0.06f, height * 0.06f, fillPaint)
+        }
+
+        textPaint.textSize = height * 0.36f
+        val numberText = level?.toString() ?: "--"
+        val display = "$handLabel $numberText"
+        val baseline = bodyRect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f
+        canvas.drawText(display, bodyRect.centerX(), baseline, textPaint)
     }
 }
